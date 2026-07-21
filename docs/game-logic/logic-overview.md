@@ -4,13 +4,13 @@ This document is the source-of-truth summary for the current gameplay logic laye
 
 ## Current Prototype
 
-The project currently implements a simple 2D top-down Monopoly-like prototype. The player clicks a roll button, receives a random dice result from 1 to 6, and the token moves step by step around a fixed loop of board tiles.
+The project currently implements a simple 2D top-down Monopoly-like prototype. The player clicks a roll button, receives a dice result from the configured `IDiceRoller` implementation, and the token moves step by step around a fixed loop of board tiles.
 
 The prototype is intentionally narrow:
 
 - One player token.
 - One board route.
-- Random 1-6 movement.
+- Default random 1-6 movement through `UnityRandomDiceRoller`.
 - Facility feedback through logs and confirmation UI.
 - No money model, health model, inventory, ownership, rent, turns, multiplayer, save data, or AI yet.
 
@@ -20,11 +20,18 @@ The prototype is intentionally narrow:
   - Pure C# movement and facility event resolver.
   - Should stay independent from Unity scene objects.
   - Covered by EditMode-style rule tests.
+- `Assets/Scripts/MonopolyPrototype/PrototypeBoardRoute.cs`
+  - Explicit prototype route data: tile names, positions, facility interaction types, and feedback logs.
+  - Converts route specs into `BoardMoveResolver.TileDefinition` values for rule resolution.
+- `Assets/Scripts/MonopolyPrototype/DiceRollers.cs`
+  - Defines the `IDiceRoller` contract used by runtime flow.
+  - `UnityRandomDiceRoller` is the default 1-6 Unity random implementation.
 - `Assets/Scripts/MonopolyPrototype/BoardTile.cs`
   - Scene-side tile data holder.
   - Converts scene data into `BoardMoveResolver.TileDefinition`.
 - `Assets/Scripts/MonopolyPrototype/BoardController.cs`
   - Runtime flow controller for rolling, moving, emitting logs, and waiting for confirmations.
+  - Receives an `IDiceRoller` so tests or later scene wiring can drive deterministic movement without changing movement rules.
 - `Assets/Scripts/MonopolyPrototype/PlayerToken.cs`
   - Visual token positioning and movement interpolation.
 - `Assets/Scripts/MonopolyPrototype/GameLogView.cs`
@@ -33,6 +40,7 @@ The prototype is intentionally narrow:
   - Displays blocking confirmation UI for interactions that require player acknowledgement.
 - `Assets/Scripts/MonopolyPrototype/PrototypeBootstrapper.cs`
   - Creates the current prototype board, UI, event system, and controller at Play time.
+  - Builds scene tiles from `PrototypeBoardRoute.Default` instead of owning route data directly.
 
 ## Facility Interaction Types
 
@@ -98,7 +106,7 @@ Confirmation happens inside `BoardController.MoveRoutine(...)` by yielding on `C
 
 ## Testing Expectations
 
-Gameplay rule changes should update `Assets/Tests/EditMode/BoardMoveResolverTests.cs`.
+Gameplay rule changes should update `Assets/Tests/EditMode/BoardMoveResolverTests.cs`. Prototype route data changes should update `Assets/Tests/EditMode/PrototypeBoardRouteTests.cs`.
 
 The current rule tests cover:
 
@@ -107,6 +115,7 @@ The current rule tests cover:
 - Stop event for `StopAutoFeedback`.
 - Confirming stop event for `StopConfirmFeedback`.
 - No events for blank tiles.
+- Default prototype route tile count, ordering, positions, facility interactions, and conversion into resolver tile definitions.
 
 When Unity batchmode is unavailable because the project is open in the Editor, run a script compile check and the reflected core rule tests, then state the limitation clearly.
 
@@ -114,8 +123,8 @@ When Unity batchmode is unavailable because the project is open in the Editor, r
 
 The next logic architecture pass should separate prototype responsibilities more clearly:
 
-- Board route data should become explicit data rather than hardcoded bootstrapper tuples.
-- Dice rolling should be injectable or isolated from `BoardController` so tests can drive deterministic movement.
+- Board route data is now explicit in `PrototypeBoardRoute`; future passes can move it into authorable assets if needed.
+- Dice rolling is now injectable through `IDiceRoller`; a later controller-level test harness can drive deterministic movement without depending on Unity random.
 - Facility effects should eventually become commands or handlers instead of only log strings.
 - UI confirmation should remain a presentation concern; core logic should only mark events as requiring confirmation.
 - Long-term gameplay systems such as money, health, ownership, turns, and player state should be introduced as separate pure logic units before being wired into scene UI.

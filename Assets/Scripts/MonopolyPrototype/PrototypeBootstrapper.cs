@@ -8,14 +8,6 @@ namespace MonopolyPrototype
 {
     public sealed class PrototypeBootstrapper : MonoBehaviour
     {
-        private static readonly Vector2[] TilePositions =
-        {
-            new Vector2(-4.5f, -2.5f), new Vector2(-2.7f, -2.5f), new Vector2(-0.9f, -2.5f), new Vector2(0.9f, -2.5f),
-            new Vector2(2.7f, -2.5f), new Vector2(4.5f, -2.5f), new Vector2(4.5f, -0.8f), new Vector2(4.5f, 0.9f),
-            new Vector2(2.7f, 0.9f), new Vector2(0.9f, 0.9f), new Vector2(-0.9f, 0.9f), new Vector2(-2.7f, 0.9f),
-            new Vector2(-4.5f, 0.9f), new Vector2(-4.5f, -0.8f),
-        };
-
         private void Awake()
         {
             SetupCamera();
@@ -62,41 +54,26 @@ namespace MonopolyPrototype
         {
             var parent = new GameObject("Prototype Board").transform;
             var sprite = CreateSquareSprite();
-            var definitions = new[]
-            {
-                ("Start", FacilityInteractionType.StopAutoFeedback, "Stopped at Start."),
-                ("Bank", FacilityInteractionType.PassAutoFeedback, "Passed Bank: auto bonus feedback."),
-                ("Blank", FacilityInteractionType.None, ""),
-                ("Gate", FacilityInteractionType.PassConfirmFeedback, "Gate checkpoint: confirm before moving on."),
-                ("Shop", FacilityInteractionType.StopConfirmFeedback, "Shop visit: confirm the stop action."),
-                ("Station", FacilityInteractionType.PassConfirmFeedback, "Station crossing: confirm the train signal."),
-                ("Park", FacilityInteractionType.StopAutoFeedback, "Stopped at Park."),
-                ("Library", FacilityInteractionType.PassAutoFeedback, "Passed Library: quiet auto feedback."),
-                ("Museum", FacilityInteractionType.StopConfirmFeedback, "Museum visit: confirm the exhibit action."),
-                ("Hotel", FacilityInteractionType.PassAutoFeedback, "Passed Hotel: lobby feedback."),
-                ("Market", FacilityInteractionType.StopAutoFeedback, "Stopped at Market."),
-                ("Clinic", FacilityInteractionType.PassAutoFeedback, "Passed Clinic: auto health feedback."),
-                ("Theater", FacilityInteractionType.StopConfirmFeedback, "Theater visit: confirm the show action."),
-                ("Harbor", FacilityInteractionType.PassConfirmFeedback, "Harbor crossing: confirm ship traffic."),
-            };
+            var definitions = PrototypeBoardRoute.Default;
 
             var tiles = new List<BoardTile>();
-            for (var i = 0; i < TilePositions.Length; i++)
+            for (var i = 0; i < definitions.Count; i++)
             {
-                var tileObject = new GameObject($"Tile - {definitions[i].Item1}");
+                var definition = definitions[i];
+                var tileObject = new GameObject($"Tile - {definition.Name}");
                 tileObject.transform.SetParent(parent);
-                tileObject.transform.position = new Vector3(TilePositions[i].x, TilePositions[i].y, 0f);
+                tileObject.transform.position = new Vector3(definition.Position.x, definition.Position.y, 0f);
 
                 var renderer = tileObject.AddComponent<SpriteRenderer>();
                 renderer.sprite = sprite;
-                renderer.color = GetTileColor(definitions[i].Item2);
+                renderer.color = GetTileColor(definition.InteractionType);
                 renderer.sortingOrder = 0;
 
                 var tile = tileObject.AddComponent<BoardTile>();
-                tile.Configure(definitions[i].Item1, definitions[i].Item2, definitions[i].Item3);
+                tile.Configure(definition.Name, definition.InteractionType, definition.FeedbackLog);
                 tiles.Add(tile);
 
-                CreateTileLabel(tileObject.transform, definitions[i].Item1);
+                CreateTileLabel(tileObject.transform, definition.Name);
             }
 
             return tiles;

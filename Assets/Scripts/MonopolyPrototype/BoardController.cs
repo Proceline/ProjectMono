@@ -14,6 +14,7 @@ namespace MonopolyPrototype
         [SerializeField] private ConfirmationView confirmationView;
         [SerializeField] private Button rollButton;
 
+        private IDiceRoller diceRoller = new UnityRandomDiceRoller();
         private int currentIndex;
         private bool isMoving;
 
@@ -22,13 +23,15 @@ namespace MonopolyPrototype
             PlayerToken token,
             GameLogView gameLogView,
             ConfirmationView facilityConfirmationView,
-            Button button)
+            Button button,
+            IDiceRoller roller = null)
         {
             route = boardRoute.ToList();
             playerToken = token;
             logView = gameLogView;
             confirmationView = facilityConfirmationView;
             rollButton = button;
+            diceRoller = roller ?? new UnityRandomDiceRoller();
             WireButton();
             ResetToken();
         }
@@ -72,7 +75,7 @@ namespace MonopolyPrototype
                 return;
             }
 
-            var steps = Random.Range(1, 7);
+            var steps = diceRoller.Roll();
             StartCoroutine(MoveRoutine(steps));
         }
 
