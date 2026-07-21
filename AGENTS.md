@@ -18,6 +18,8 @@
 ## Gameplay Prototype Rules
 
 - Keep the prototype focused on playable mechanics before adding polish.
+- Maintain the current logic summary in [logic-overview.md](docs/game-logic/logic-overview.md).
+- Every important gameplay logic change must update [logic-overview.md](docs/game-logic/logic-overview.md) in the same branch and commit series.
 - Facility behavior should remain explicit and testable.
 - Current facility interaction types are:
   - `None`: blank tile, no feedback.
