@@ -1,0 +1,30 @@
+* text=auto
+
+# Unity text assets should keep stable line endings across platforms.
+.gitattributes text eol=lf
+.vsconfig text eol=lf
+*.asset text eol=lf
+*.meta text eol=lf
+*.prefab text eol=lf
+*.unity text eol=lf
+*.mat text eol=lf
+*.anim text eol=lf
+*.controller text eol=lf
+*.inputactions text eol=lf
+*.json text eol=lf
+*.asmdef text eol=lf
+*.cs text eol=lf
+
+# Common Unity binary/media assets.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.tga binary
+*.psd binary
+*.fbx binary
+*.mp3 binary
+*.wav binary
+*.ogg binary
+*.mp4 binary
+*.mov binary
