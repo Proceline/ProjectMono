@@ -38,6 +38,7 @@ The prototype is intentionally narrow:
   - The abstract `SOEvent` base provides runtime listener lifecycle and cleanup, while concrete events define their own typed `Raise(...)` signature.
   - Each concrete event exposes a serialized `UnityEvent` for Inspector callbacks. `Raise(...)` invokes those persistent callbacks in Unity's serialized order, then invokes runtime callbacks through `Register`/`Unregister` using fixed integer order and registration sequence as a stable tie-breaker.
   - Array payloads are passed through without cloning, so listeners can intentionally observe or mutate the same array instance during one raise.
+  - See [so-event-guide.md](so-event-guide.md) for asset creation, runtime registration, extension, testing, and integration boundaries.
 - `Assets/Scripts/MonopolyPrototype/PrototypeMapData.cs`
   - ScriptableObject map data: square grid size and ordered path tiles.
   - Stores each tile's grid coordinate, name, and optional `BuildingConfig` reference.

@@ -23,6 +23,7 @@
 - Building behavior should remain explicit and testable through `BuildingConfig` assets and pure `BuildingDefinition` values.
 - Non-blank tiles use one catalog-backed `BuildingConfig` with a `Pass`, `Stop`, or `PassOrStop` trigger.
 - Building effects are emitted as presentation-agnostic commands; UI confirmation remains outside the core rules.
+- For SOEvent work, read [so-event-guide.md](docs/game-logic/so-event-guide.md) before editing. SOEvent is an independent extension layer and must not be added as a dependency of the core rule or building-command pipeline without an explicit integration task.
 - Movement should pause only for interactions that require confirmation.
 
 ## Verification
