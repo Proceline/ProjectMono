@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5b8d2e3f4a6c7190b2d5e8f1a3c7e946, type: 3}
+  m_Script: {fileID: 11500000, guid: 7c1e3a5f9b2d4e6f8a0c1d3e5f7b9a2c, type: 3}
   m_Name: Bank_AddMoney
   m_EditorClassIdentifier: MonopolyPrototype::MonopolyPrototype.AddMoneyEffectAsset
   moneyAmount: 100

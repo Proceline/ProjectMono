@@ -29,8 +29,9 @@ The prototype is intentionally narrow:
 - `Assets/Scripts/MonopolyPrototype/BuildingConfig.cs`
   - ScriptableObject authoring layer for buildings.
   - Holds an ordered list of `BuildingEffectAsset` references and converts them into pure `BuildingDefinition` values before rule resolution.
-- `Assets/Scripts/MonopolyPrototype/BuildingEffectAsset.cs`
+- `Assets/Scripts/MonopolyPrototype/BuildingEffectAsset.cs` and the concrete `*EffectAsset.cs` files
   - ScriptableObject effect translator layer for add/subtract money, teleport, confirmation, and feedback.
+  - Each concrete effect type lives in its own same-named script so Unity can bind its asset to the correct `MonoScript`.
   - Each effect asset can produce a pure definition or a `BuildingEffectCommand`; it does not apply player state or UI side effects.
 - `Assets/Scripts/MonopolyPrototype/PrototypeMapData.cs`
   - ScriptableObject map data: square grid size and ordered path tiles.
