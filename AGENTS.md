@@ -20,13 +20,9 @@
 - Keep the prototype focused on playable mechanics before adding polish.
 - Maintain the current logic summary in [logic-overview.md](docs/game-logic/logic-overview.md).
 - Every important gameplay logic change must update [logic-overview.md](docs/game-logic/logic-overview.md) in the same branch and commit series.
-- Facility behavior should remain explicit and testable.
-- Current facility interaction types are:
-  - `None`: blank tile, no feedback.
-  - `StopAutoFeedback`: feedback only when stopped on, no confirmation.
-  - `StopConfirmFeedback`: feedback only when stopped on, requires confirmation.
-  - `PassAutoFeedback`: feedback when passed or stopped on, no confirmation.
-  - `PassConfirmFeedback`: feedback when passed or stopped on, requires confirmation.
+- Building behavior should remain explicit and testable through `BuildingConfig` assets and pure `BuildingDefinition` values.
+- Non-blank tiles use one catalog-backed `BuildingConfig` with a `Pass`, `Stop`, or `PassOrStop` trigger.
+- Building effects are emitted as presentation-agnostic commands; UI confirmation remains outside the core rules.
 - Movement should pause only for interactions that require confirmation.
 
 ## Verification

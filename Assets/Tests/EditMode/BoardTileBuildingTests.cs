@@ -17,7 +17,7 @@ public class BoardTileBuildingTests
             });
         var gameObject = new GameObject("Tile");
         var tile = gameObject.AddComponent<BoardTile>();
-        tile.Configure("Clinic", FacilityInteractionType.None, string.Empty, config);
+        tile.Configure("Clinic", config);
 
         var definition = tile.ToDefinition();
 

@@ -15,6 +15,10 @@ MonoBehaviour:
   buildingName: Gate
   triggerMode: 2
   effects:
+  - effectType: 3
+    moneyAmount: 0
+    targetTileIndex: 0
+    message: 'Gate checkpoint: confirm before moving on.'
   - effectType: 4
     moneyAmount: 0
     targetTileIndex: 0

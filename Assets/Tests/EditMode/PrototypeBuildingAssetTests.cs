@@ -14,35 +14,87 @@ public class PrototypeBuildingAssetTests
 
         Assert.IsNotNull(catalog);
 
-        var bank = catalog.Find("Bank");
-        Assert.IsNotNull(bank);
-        var bankDefinition = bank.ToDefinition();
-        Assert.AreEqual(BuildingTriggerMode.PassOrStop, bankDefinition.TriggerMode);
-        Assert.AreEqual(BuildingEffectType.AddMoney, bankDefinition.Effects[0].EffectType);
-        Assert.AreEqual(100, bankDefinition.Effects[0].MoneyAmount);
-        Assert.AreEqual("Bank bonus: +100 money.", bankDefinition.Effects[1].Message);
+        var expectedNames = new[]
+        {
+            "Start", "Bank", "Gate", "Shop", "Station", "Park", "Library",
+            "Museum", "Hotel", "Market", "Clinic", "Theater", "Harbor",
+        };
+        for (var i = 0; i < expectedNames.Length; i++)
+        {
+            Assert.IsNotNull(catalog.Find(expectedNames[i]), expectedNames[i]);
+        }
+        Assert.IsNull(catalog.Find("Blank"));
 
-        var gate = catalog.Find("Gate");
-        Assert.IsNotNull(gate);
-        var gateDefinition = gate.ToDefinition();
-        Assert.AreEqual(BuildingTriggerMode.PassOrStop, gateDefinition.TriggerMode);
-        Assert.AreEqual(BuildingEffectType.ShowFeedback, gateDefinition.Effects[0].EffectType);
-        Assert.AreEqual("Gate checkpoint cleared.", gateDefinition.Effects[0].Message);
+        AssertBuilding(catalog, "Start", BuildingTriggerMode.Stop,
+            new[] { BuildingEffectType.ShowFeedback },
+            new[] { "Stopped at Start." });
+        AssertBuilding(catalog, "Bank", BuildingTriggerMode.PassOrStop,
+            new[] { BuildingEffectType.ShowFeedback, BuildingEffectType.AddMoney, BuildingEffectType.ShowFeedback },
+            new[] { "Passed Bank: auto bonus feedback.", string.Empty, "Bank bonus: +100 money." });
+        AssertBuilding(catalog, "Gate", BuildingTriggerMode.PassOrStop,
+            new[] { BuildingEffectType.RequestConfirmation, BuildingEffectType.ShowFeedback },
+            new[] { "Gate checkpoint: confirm before moving on.", "Gate checkpoint cleared." });
+        AssertBuilding(catalog, "Shop", BuildingTriggerMode.Stop,
+            new[] { BuildingEffectType.RequestConfirmation, BuildingEffectType.SubtractMoney, BuildingEffectType.ShowFeedback },
+            new[] { "Shop visit: confirm the stop action.", string.Empty, "Shop fee: -40 money." });
+        AssertBuilding(catalog, "Station", BuildingTriggerMode.PassOrStop,
+            new[] { BuildingEffectType.RequestConfirmation },
+            new[] { "Station crossing: confirm the train signal." });
+        AssertBuilding(catalog, "Park", BuildingTriggerMode.Stop,
+            new[] { BuildingEffectType.ShowFeedback },
+            new[] { "Stopped at Park." });
+        AssertBuilding(catalog, "Library", BuildingTriggerMode.PassOrStop,
+            new[] { BuildingEffectType.ShowFeedback },
+            new[] { "Passed Library: quiet auto feedback." });
+        AssertBuilding(catalog, "Museum", BuildingTriggerMode.Stop,
+            new[] { BuildingEffectType.RequestConfirmation },
+            new[] { "Museum visit: confirm the exhibit action." });
+        AssertBuilding(catalog, "Hotel", BuildingTriggerMode.PassOrStop,
+            new[] { BuildingEffectType.ShowFeedback },
+            new[] { "Passed Hotel: lobby feedback." });
+        AssertBuilding(catalog, "Market", BuildingTriggerMode.Stop,
+            new[] { BuildingEffectType.ShowFeedback },
+            new[] { "Stopped at Market." });
+        AssertBuilding(catalog, "Clinic", BuildingTriggerMode.PassOrStop,
+            new[] { BuildingEffectType.ShowFeedback },
+            new[] { "Passed Clinic: auto health feedback." });
+        AssertBuilding(catalog, "Theater", BuildingTriggerMode.Stop,
+            new[] { BuildingEffectType.RequestConfirmation },
+            new[] { "Theater visit: confirm the show action." });
+        AssertBuilding(catalog, "Harbor", BuildingTriggerMode.PassOrStop,
+            new[] { BuildingEffectType.RequestConfirmation, BuildingEffectType.Teleport },
+            new[] { "Harbor crossing: confirm ship traffic.", string.Empty });
+    }
 
-        var shop = catalog.Find("Shop");
-        Assert.IsNotNull(shop);
-        var shopDefinition = shop.ToDefinition();
-        Assert.AreEqual(BuildingTriggerMode.Stop, shopDefinition.TriggerMode);
-        Assert.AreEqual(BuildingEffectType.SubtractMoney, shopDefinition.Effects[0].EffectType);
-        Assert.AreEqual(40, shopDefinition.Effects[0].MoneyAmount);
-        Assert.AreEqual("Shop fee: -40 money.", shopDefinition.Effects[1].Message);
+    private static void AssertBuilding(
+        PrototypeBuildingCatalog catalog,
+        string name,
+        BuildingTriggerMode expectedTrigger,
+        BuildingEffectType[] expectedEffects,
+        string[] expectedMessages)
+    {
+        var config = catalog.Find(name);
+        Assert.IsNotNull(config, name);
 
-        var harbor = catalog.Find("Harbor");
-        Assert.IsNotNull(harbor);
-        var harborDefinition = harbor.ToDefinition();
-        Assert.AreEqual(BuildingTriggerMode.PassOrStop, harborDefinition.TriggerMode);
-        Assert.AreEqual(BuildingEffectType.Teleport, harborDefinition.Effects[0].EffectType);
-        Assert.AreEqual(0, harborDefinition.Effects[0].TargetTileIndex);
+        var definition = config.ToDefinition();
+        Assert.AreEqual(expectedTrigger, definition.TriggerMode, name);
+        Assert.AreEqual(expectedEffects.Length, definition.Effects.Count, name);
+        for (var i = 0; i < expectedEffects.Length; i++)
+        {
+            Assert.AreEqual(expectedEffects[i], definition.Effects[i].EffectType, $"{name} effect {i}");
+            Assert.AreEqual(expectedMessages[i], definition.Effects[i].Message, $"{name} effect {i} message");
+        }
+    }
+
+    [Test]
+    public void CatalogAssets_PreserveMoneyAndTeleportPayloads()
+    {
+        var catalog = AssetDatabase.LoadAssetAtPath<PrototypeBuildingCatalog>(
+            "Assets/Data/Buildings/PrototypeBuildingCatalog.asset");
+
+        Assert.AreEqual(100, catalog.Find("Bank").ToDefinition().Effects[1].MoneyAmount);
+        Assert.AreEqual(40, catalog.Find("Shop").ToDefinition().Effects[1].MoneyAmount);
+        Assert.AreEqual(0, catalog.Find("Harbor").ToDefinition().Effects[1].TargetTileIndex);
     }
 
     [Test]

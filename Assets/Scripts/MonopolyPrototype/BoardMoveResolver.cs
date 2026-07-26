@@ -3,15 +3,6 @@ using System.Collections.Generic;
 
 namespace MonopolyPrototype
 {
-    public enum FacilityInteractionType
-    {
-        None,
-        StopAutoFeedback,
-        StopConfirmFeedback,
-        PassConfirmFeedback,
-        PassAutoFeedback
-    }
-
     public enum MoveEventTiming
     {
         Pass,
@@ -22,17 +13,13 @@ namespace MonopolyPrototype
     {
         public readonly struct TileDefinition
         {
-            public TileDefinition(string name, FacilityInteractionType interactionType, string feedbackLog, BuildingDefinition building = null)
+            public TileDefinition(string name, BuildingDefinition building = null)
             {
                 Name = name ?? string.Empty;
-                InteractionType = interactionType;
-                FeedbackLog = feedbackLog ?? string.Empty;
                 Building = building;
             }
 
             public string Name { get; }
-            public FacilityInteractionType InteractionType { get; }
-            public string FeedbackLog { get; }
             public BuildingDefinition Building { get; }
         }
 
@@ -41,28 +28,20 @@ namespace MonopolyPrototype
             public MoveEvent(
                 int tileIndex,
                 MoveEventTiming timing,
-                FacilityInteractionType interactionType,
-                string message,
                 BuildingDefinition building = null,
                 IReadOnlyList<BuildingEffectCommand> buildingCommands = null)
             {
                 TileIndex = tileIndex;
                 Timing = timing;
-                InteractionType = interactionType;
-                Message = message ?? string.Empty;
                 Building = building;
                 BuildingCommands = buildingCommands ?? new List<BuildingEffectCommand>();
             }
 
             public int TileIndex { get; }
             public MoveEventTiming Timing { get; }
-            public FacilityInteractionType InteractionType { get; }
-            public string Message { get; }
             public BuildingDefinition Building { get; }
             public IReadOnlyList<BuildingEffectCommand> BuildingCommands { get; }
-            public bool RequiresConfirmation => InteractionType == FacilityInteractionType.PassConfirmFeedback
-                || InteractionType == FacilityInteractionType.StopConfirmFeedback
-                || HasConfirmingBuildingCommand(BuildingCommands);
+            public bool RequiresConfirmation => HasConfirmingBuildingCommand(BuildingCommands);
         }
 
         public readonly struct MoveResult
@@ -105,59 +84,26 @@ namespace MonopolyPrototype
             for (var step = 1; step <= steps; step++)
             {
                 currentIndex = (currentIndex + 1) % tiles.Count;
-                var isFinalStep = step == steps;
-                var tile = tiles[currentIndex];
-
-                if (!isFinalStep)
-                {
-                    AddMoveEventIfNeeded(events, currentIndex, MoveEventTiming.Pass, tile);
-                }
-                else
-                {
-                    AddMoveEventIfNeeded(events, currentIndex, MoveEventTiming.Stop, tile);
-                }
+                var timing = step == steps ? MoveEventTiming.Stop : MoveEventTiming.Pass;
+                AddMoveEventIfNeeded(events, currentIndex, timing, tiles[currentIndex]);
             }
 
             return new MoveResult(currentIndex, events);
         }
 
-        private static void AddMoveEventIfNeeded(List<MoveEvent> events, int tileIndex, MoveEventTiming timing, TileDefinition tile)
+        private static void AddMoveEventIfNeeded(
+            List<MoveEvent> events,
+            int tileIndex,
+            MoveEventTiming timing,
+            TileDefinition tile)
         {
-            var hasFacilityEvent = HasFacilityEvent(timing, tile);
             var buildingCommands = BuildingRuleResolver.Resolve(tile.Building, timing);
-            if (!hasFacilityEvent && buildingCommands.Count == 0)
+            if (buildingCommands.Count == 0)
             {
                 return;
             }
 
-            var message = hasFacilityEvent ? tile.FeedbackLog : string.Empty;
-            events.Add(new MoveEvent(tileIndex, timing, tile.InteractionType, message, tile.Building, buildingCommands));
-        }
-
-        private static bool HasFacilityEvent(MoveEventTiming timing, TileDefinition tile)
-        {
-            if (string.IsNullOrWhiteSpace(tile.FeedbackLog))
-            {
-                return false;
-            }
-
-            return timing == MoveEventTiming.Pass
-                ? IsPassInteraction(tile.InteractionType)
-                : IsStopInteraction(tile.InteractionType);
-        }
-
-        private static bool IsPassInteraction(FacilityInteractionType interactionType)
-        {
-            return interactionType == FacilityInteractionType.PassConfirmFeedback
-                || interactionType == FacilityInteractionType.PassAutoFeedback;
-        }
-
-        private static bool IsStopInteraction(FacilityInteractionType interactionType)
-        {
-            return interactionType == FacilityInteractionType.StopAutoFeedback
-                || interactionType == FacilityInteractionType.StopConfirmFeedback
-                || interactionType == FacilityInteractionType.PassConfirmFeedback
-                || interactionType == FacilityInteractionType.PassAutoFeedback;
+            events.Add(new MoveEvent(tileIndex, timing, tile.Building, buildingCommands));
         }
 
         private static bool HasConfirmingBuildingCommand(IReadOnlyList<BuildingEffectCommand> commands)

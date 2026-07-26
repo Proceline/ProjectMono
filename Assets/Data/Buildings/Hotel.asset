@@ -10,20 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: be30712b95734ad2819db0223d6e9d7f, type: 3}
-  m_Name: Shop
+  m_Name: Hotel
   m_EditorClassIdentifier:
-  buildingName: Shop
-  triggerMode: 1
+  buildingName: Hotel
+  triggerMode: 2
   effects:
-  - effectType: 3
-    moneyAmount: 0
-    targetTileIndex: 0
-    message: 'Shop visit: confirm the stop action.'
-  - effectType: 1
-    moneyAmount: 40
-    targetTileIndex: 0
-    message:
   - effectType: 4
     moneyAmount: 0
     targetTileIndex: 0
-    message: 'Shop fee: -40 money.'
+    message: 'Passed Hotel: lobby feedback.'

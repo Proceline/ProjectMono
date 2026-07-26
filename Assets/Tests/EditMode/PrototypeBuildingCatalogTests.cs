@@ -35,7 +35,7 @@ public class PrototypeBuildingCatalogTests
         catalog.Configure(new[] { bank });
         var gameObject = new GameObject("Tile");
         var tile = gameObject.AddComponent<BoardTile>();
-        tile.Configure("Bank", FacilityInteractionType.PassAutoFeedback, string.Empty, catalog.Find("Bank"));
+        tile.Configure("Bank", catalog.Find("Bank"));
 
         var definition = tile.ToDefinition();
 

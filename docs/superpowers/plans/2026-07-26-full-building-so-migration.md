@@ -24,11 +24,11 @@
 - Modify: `Assets/Tests/EditMode/PrototypeBoardRouteTests.cs`
 - Modify: `Assets/Tests/EditMode/PrototypeBuildingAssetTests.cs`
 
-- [ ] Rewrite resolver fixtures to use `BuildingDefinition` and `BuildingEffectDefinition` only; assert pass, stop, pass-or-stop, feedback, and confirmation behavior through commands.
-- [ ] Update tile tests to configure only `BuildingConfig` and expect `BoardMoveResolver.TileDefinition` without legacy facility fields.
-- [ ] Update route tests to assert names and positions only, and assert no legacy interaction or feedback properties exist in the route contract.
-- [ ] Extend asset tests with all thirteen expected catalog entries and their migrated trigger/effect data.
-- [ ] Compile the changed tests before implementing the removal and confirm failures identify the missing new API or stale legacy references.
+- [x] Rewrite resolver fixtures to use `BuildingDefinition` and `BuildingEffectDefinition` only; assert pass, stop, pass-or-stop, feedback, and confirmation behavior through commands.
+- [x] Update tile tests to configure only `BuildingConfig` and expect `BoardMoveResolver.TileDefinition` without legacy facility fields.
+- [x] Update route tests to assert names and positions only, and assert no legacy interaction or feedback properties exist in the route contract.
+- [x] Extend asset tests with all thirteen expected catalog entries and their migrated trigger/effect data.
+- [x] Compile the changed tests before implementing the removal and confirm failures identify the missing new API or stale legacy references.
 
 ### Task 2: Make the pure resolver building-only
 
@@ -36,12 +36,12 @@
 - Modify: `Assets/Scripts/MonopolyPrototype/BoardMoveResolver.cs`
 - Modify: `Assets/Scripts/MonopolyPrototype/BuildingRules.cs` only if command semantics need coverage
 
-- [ ] Remove `FacilityInteractionType`, `FeedbackLog`, `InteractionType`, and legacy `MoveEvent.Message` data from the pure resolver.
-- [ ] Change `TileDefinition` to carry a tile name and optional pure `BuildingDefinition` only.
-- [ ] Resolve pass events for intermediate steps and stop events for the final step exclusively through `BuildingRuleResolver.Resolve`.
-- [ ] Emit no event when the building is absent or has no matching commands.
-- [ ] Make `MoveEvent.RequiresConfirmation` depend only on `RequestConfirmation` commands.
-- [ ] Compile and run the pure resolver test set through the available Unity Roslyn/test path.
+- [x] Remove `FacilityInteractionType`, `FeedbackLog`, `InteractionType`, and legacy `MoveEvent.Message` data from the pure resolver.
+- [x] Change `TileDefinition` to carry a tile name and optional pure `BuildingDefinition` only.
+- [x] Resolve pass events for intermediate steps and stop events for the final step exclusively through `BuildingRuleResolver.Resolve`.
+- [x] Emit no event when the building is absent or has no matching commands.
+- [x] Make `MoveEvent.RequiresConfirmation` depend only on `RequestConfirmation` commands.
+- [x] Compile the pure resolver test set through the Unity Roslyn path; runtime test execution is blocked by the already-open Unity Editor.
 
 ### Task 3: Remove legacy scene/runtime handling
 
@@ -51,11 +51,11 @@
 - Modify: `Assets/Scripts/MonopolyPrototype/PrototypeBootstrapper.cs`
 - Modify: `Assets/Scripts/MonopolyPrototype/BoardController.cs`
 
-- [ ] Remove legacy fields and parameters from `BoardTile`, leaving only tile name and `BuildingConfig`.
-- [ ] Remove legacy interaction and feedback fields from `PrototypeBoardRoute.TileSpec` and all route entries.
-- [ ] Look up each named asset through `PrototypeBuildingCatalog` and derive tile color from `BuildingDefinition.TriggerMode` and whether it contains `RequestConfirmation`.
-- [ ] Delete the old facility message/confirmation branch from `BoardController`; handle all feedback and confirmation through building commands.
-- [ ] Compile the runtime assembly and scan for zero remaining references to `FacilityInteractionType`, `FeedbackLog`, and the old controller branch.
+- [x] Remove legacy fields and parameters from `BoardTile`, leaving only tile name and `BuildingConfig`.
+- [x] Remove legacy interaction and feedback fields from `PrototypeBoardRoute.TileSpec` and all route entries.
+- [x] Look up each named asset through `PrototypeBuildingCatalog` and derive tile color from `BuildingDefinition.TriggerMode` and whether it contains `RequestConfirmation`.
+- [x] Delete the old facility message/confirmation branch from `BoardController`; handle all feedback and confirmation through building commands.
+- [x] Compile the runtime assembly and scan for zero remaining references to `FacilityInteractionType`, `FeedbackLog`, and the old controller branch.
 
 ### Task 4: Create the complete asset set
 
@@ -75,17 +75,17 @@
 - Modify: `Assets/Data/Buildings/Harbor.asset`
 - Modify: `Assets/Data/Buildings/PrototypeBuildingCatalog.asset`
 
-- [ ] Serialize the legacy behavior mapping into the nine new assets.
-- [ ] Merge the former legacy message and current building effects into the four existing assets in their previous runtime order.
-- [ ] Add all thirteen asset references to the catalog and keep `Blank` absent.
-- [ ] Verify every catalog and scene GUID resolves to a matching `.meta` file.
+- [x] Serialize the legacy behavior mapping into the nine new assets.
+- [x] Merge the former legacy message and current building effects into the four existing assets in their previous runtime order.
+- [x] Add all thirteen asset references to the catalog and keep `Blank` absent.
+- [x] Verify every catalog and scene GUID resolves to a matching `.meta` file.
 
 ### Task 5: Document and verify
 
 **Files:**
 - Modify: `docs/game-logic/logic-overview.md`
 
-- [ ] Replace the legacy facility section with building trigger/effect rules and the full asset catalog source of truth.
-- [ ] Document that all non-blank prototype tiles are SO-authored and that `Blank` is the only empty tile.
-- [ ] Run `git diff --check`, runtime compile, EditMode test compile, and Unity CLI EditMode tests.
+- [x] Replace the legacy facility section with building trigger/effect rules and the full asset catalog source of truth.
+- [x] Document that all non-blank prototype tiles are SO-authored and that `Blank` is the only empty tile.
+- [x] Run `git diff --check`, runtime compile, and EditMode test compile. Unity CLI EditMode execution is blocked because the project is already open in another Unity instance.
 - [ ] Commit the focused migration and push the feature branch without merging.

@@ -22,14 +22,14 @@ namespace MonopolyPrototype
             IReadOnlyList<BoardTile> boardRoute,
             PlayerToken token,
             GameLogView gameLogView,
-            ConfirmationView facilityConfirmationView,
+            ConfirmationView confirmationView,
             Button button,
             IDiceRoller roller = null)
         {
             route = boardRoute.ToList();
             playerToken = token;
             logView = gameLogView;
-            confirmationView = facilityConfirmationView;
+            this.confirmationView = confirmationView;
             rollButton = button;
             diceRoller = roller ?? new UnityRandomDiceRoller();
             WireButton();
@@ -120,15 +120,6 @@ namespace MonopolyPrototype
 
         private IEnumerator HandleMoveEvent(BoardMoveResolver.MoveEvent moveEvent)
         {
-            if (!string.IsNullOrWhiteSpace(moveEvent.Message))
-            {
-                logView?.AddLine(moveEvent.Message);
-                if (IsFacilityConfirmation(moveEvent) && confirmationView != null)
-                {
-                    yield return confirmationView.WaitForConfirmation(moveEvent.Message);
-                }
-            }
-
             if (moveEvent.BuildingCommands == null)
             {
                 yield break;
@@ -166,12 +157,6 @@ namespace MonopolyPrototype
                         break;
                 }
             }
-        }
-
-        private static bool IsFacilityConfirmation(BoardMoveResolver.MoveEvent moveEvent)
-        {
-            return moveEvent.InteractionType == FacilityInteractionType.PassConfirmFeedback
-                || moveEvent.InteractionType == FacilityInteractionType.StopConfirmFeedback;
         }
     }
 }

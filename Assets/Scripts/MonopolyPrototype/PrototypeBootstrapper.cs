@@ -66,17 +66,15 @@ namespace MonopolyPrototype
                 tileObject.transform.SetParent(parent);
                 tileObject.transform.position = new Vector3(definition.Position.x, definition.Position.y, 0f);
 
+                var buildingConfig = buildingCatalog != null ? buildingCatalog.Find(definition.Name) : null;
+                var building = buildingConfig != null ? buildingConfig.ToDefinition() : null;
                 var renderer = tileObject.AddComponent<SpriteRenderer>();
                 renderer.sprite = sprite;
-                renderer.color = GetTileColor(definition.InteractionType);
+                renderer.color = GetTileColor(building);
                 renderer.sortingOrder = 0;
 
                 var tile = tileObject.AddComponent<BoardTile>();
-                tile.Configure(
-                    definition.Name,
-                    definition.InteractionType,
-                    definition.FeedbackLog,
-                    buildingCatalog != null ? buildingCatalog.Find(definition.Name) : null);
+                tile.Configure(definition.Name, buildingConfig);
                 tiles.Add(tile);
 
                 CreateTileLabel(tileObject.transform, definition.Name);
@@ -172,7 +170,7 @@ namespace MonopolyPrototype
             panelRect.anchoredPosition = Vector2.zero;
             panelRect.sizeDelta = new Vector2(420f, 170f);
 
-            var message = CreateUiText("Confirm facility action.", panel.transform, 20, TextAnchor.MiddleCenter, Color.white);
+            var message = CreateUiText("Confirm building action.", panel.transform, 20, TextAnchor.MiddleCenter, Color.white);
             message.rectTransform.anchorMin = new Vector2(0f, 0.35f);
             message.rectTransform.anchorMax = new Vector2(1f, 1f);
             message.rectTransform.offsetMin = new Vector2(24f, 0f);
@@ -230,21 +228,36 @@ namespace MonopolyPrototype
             textMesh.color = Color.white;
         }
 
-        private static Color GetTileColor(FacilityInteractionType interactionType)
+        private static Color GetTileColor(BuildingDefinition building)
         {
-            switch (interactionType)
+            if (building == null)
             {
-                case FacilityInteractionType.StopAutoFeedback:
-                    return new Color(0.21f, 0.46f, 0.64f);
-                case FacilityInteractionType.StopConfirmFeedback:
-                    return new Color(0.45f, 0.33f, 0.68f);
-                case FacilityInteractionType.PassConfirmFeedback:
-                    return new Color(0.73f, 0.35f, 0.24f);
-                case FacilityInteractionType.PassAutoFeedback:
-                    return new Color(0.22f, 0.57f, 0.39f);
-                default:
-                    return new Color(0.34f, 0.34f, 0.34f);
+                return new Color(0.34f, 0.34f, 0.34f);
             }
+
+            if (HasConfirmationEffect(building))
+            {
+                return building.TriggerMode == BuildingTriggerMode.Stop
+                    ? new Color(0.45f, 0.33f, 0.68f)
+                    : new Color(0.73f, 0.35f, 0.24f);
+            }
+
+            return building.TriggerMode == BuildingTriggerMode.Stop
+                ? new Color(0.21f, 0.46f, 0.64f)
+                : new Color(0.22f, 0.57f, 0.39f);
+        }
+
+        private static bool HasConfirmationEffect(BuildingDefinition building)
+        {
+            for (var i = 0; i < building.Effects.Count; i++)
+            {
+                if (building.Effects[i].EffectType == BuildingEffectType.RequestConfirmation)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static Sprite CreateSquareSprite()
