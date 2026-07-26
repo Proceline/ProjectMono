@@ -29,7 +29,7 @@ The prototype is intentionally narrow:
 - `Assets/Scripts/MonopolyPrototype/BuildingConfig.cs`
   - ScriptableObject authoring layer for buildings.
   - Holds an ordered list of `BuildingEffectAsset` references and converts them into pure `BuildingDefinition` values before rule resolution.
-- `Assets/Scripts/MonopolyPrototype/BuildingEffectAsset.cs` and the concrete `*EffectAsset.cs` files
+- `Assets/Scripts/MonopolyPrototype/BuildingEffects/`
   - ScriptableObject effect translator layer for add/subtract money, teleport, confirmation, and feedback.
   - Each concrete effect type lives in its own same-named script so Unity can bind its asset to the correct `MonoScript`.
   - Each effect asset can produce a pure definition or a `BuildingEffectCommand`; it does not apply player state or UI side effects.
@@ -103,7 +103,7 @@ Blank tiles and tiles without a building definition never produce an event.
 
 ## Building Rules
 
-Buildings are authored as `BuildingConfig` ScriptableObject assets under `Assets/Data/Buildings`. Their ordered effects are separate `BuildingEffectAsset` ScriptableObjects under `Assets/Data/BuildingEffects`. A `PrototypeMapData` asset is assigned to the `Prototype Bootstrapper` object in `Assets/Scenes/SampleScene.unity`; each map tile directly references its building asset. Core rules do not consume ScriptableObjects directly. `BuildingConfig.ToDefinition()` produces a pure `BuildingDefinition` with:
+Buildings are authored as `BuildingConfig` ScriptableObject assets under `Assets/Data/Buildings`. Each of the 13 prototype building assets directly references its ordered effect assets under `Assets/Data/BuildingEffects` through the `effects` list. Their effect translator scripts are grouped under `Assets/Scripts/MonopolyPrototype/BuildingEffects/`. A `PrototypeMapData` asset is assigned to the `Prototype Bootstrapper` object in `Assets/Scenes/SampleScene.unity`; each map tile directly references its building asset. Core rules do not consume ScriptableObjects directly. `BuildingConfig.ToDefinition()` produces a pure `BuildingDefinition` with:
 
 - A building name.
 - A `BuildingTriggerMode`.
