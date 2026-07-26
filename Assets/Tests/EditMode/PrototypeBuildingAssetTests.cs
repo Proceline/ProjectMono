@@ -98,7 +98,7 @@ public class PrototypeBuildingAssetTests
     }
 
     [Test]
-    public void SampleScene_ReferencesPrototypeBuildingCatalog()
+    public void SampleScene_ReferencesPrototypeMapData()
     {
         const string scenePath = "Assets/Scenes/SampleScene.unity";
         var scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Additive);
@@ -117,11 +117,11 @@ public class PrototypeBuildingAssetTests
 
             Assert.IsNotNull(bootstrapper);
             var serializedBootstrapper = new SerializedObject(bootstrapper);
-            var catalog = serializedBootstrapper.FindProperty("buildingCatalog").objectReferenceValue;
-            var expectedCatalog = AssetDatabase.LoadAssetAtPath<PrototypeBuildingCatalog>(
-                "Assets/Data/Buildings/PrototypeBuildingCatalog.asset");
+            var mapData = serializedBootstrapper.FindProperty("mapData").objectReferenceValue;
+            var expectedMapData = AssetDatabase.LoadAssetAtPath<PrototypeMapData>(
+                "Assets/Data/Maps/PrototypeMapData.asset");
 
-            Assert.AreSame(expectedCatalog, catalog);
+            Assert.AreSame(expectedMapData, mapData);
         }
         finally
         {

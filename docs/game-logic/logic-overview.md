@@ -4,7 +4,7 @@ This document is the source-of-truth summary for the current gameplay logic laye
 
 ## Current Prototype
 
-The project currently implements a simple 2D top-down Monopoly-like prototype. The player clicks a roll button, receives a dice result from the configured `IDiceRoller` implementation, and the token moves step by step around a fixed loop of board tiles.
+The project currently implements a simple 2D top-down Monopoly-like prototype. The player clicks a roll button, receives a dice result from the configured `IDiceRoller` implementation, and the token moves step by step around the closed loop described by a `PrototypeMapData` asset.
 
 The prototype is intentionally narrow:
 
@@ -30,12 +30,12 @@ The prototype is intentionally narrow:
   - ScriptableObject authoring layer for buildings.
   - Converts Unity-authored data into pure `BuildingDefinition` values before rule resolution.
 - `Assets/Scripts/MonopolyPrototype/PrototypeBuildingCatalog.cs`
-  - ScriptableObject catalog of the building assets used by the prototype scene.
-  - Matches generated route tiles to `BuildingConfig` assets by building name.
-- `Assets/Scripts/MonopolyPrototype/PrototypeBoardRoute.cs`
-  - Explicit prototype route data: tile names and positions only.
-  - Does not own building effects; those are referenced through `PrototypeBuildingCatalog`.
-  - Converts route specs into geometry-only `BoardMoveResolver.TileDefinition` values.
+  - Optional ScriptableObject library of building assets used by the editor palette.
+  - It is not the runtime source of map placement or route order.
+- `Assets/Scripts/MonopolyPrototype/PrototypeMapData.cs`
+  - ScriptableObject map data: square grid size and ordered path tiles.
+  - Stores each tile's grid coordinate, name, and optional `BuildingConfig` reference.
+  - Validates bounds, unique cells, orthogonal adjacency, and closed-loop connectivity.
 - `Assets/Scripts/MonopolyPrototype/DiceRollers.cs`
   - Defines the `IDiceRoller` contract used by runtime flow.
   - `UnityRandomDiceRoller` is the default 1-6 Unity random implementation.
@@ -55,12 +55,16 @@ The prototype is intentionally narrow:
   - Displays blocking confirmation UI for interactions that require player acknowledgement.
 - `Assets/Scripts/MonopolyPrototype/PrototypeBootstrapper.cs`
   - Creates the current prototype board, UI, event system, and controller at Play time.
-  - Builds scene tiles from `PrototypeBoardRoute.Default` and looks up building configs through the serialized catalog.
+  - Builds scene tiles from the serialized `PrototypeMapData` asset.
+- `Assets/Editor/MonopolyPrototype/PrototypeMapPainterWindow.cs`
+  - Editor-only map authoring tool.
+  - Draws an N x N placeholder grid in the Scene view and stores only map data; it does not create runtime visual objects.
 
 ## Building-backed Tile Behavior
 
-Every non-blank route tile is backed by one `BuildingConfig` asset in `Assets/Data/Buildings`.
-The route stores only identity and geometry; the catalog supplies the building definition at bootstrap time.
+Every non-blank map tile is backed by one `BuildingConfig` asset in `Assets/Data/Buildings`.
+`Assets/Data/Maps/PrototypeMapData.asset` is the runtime source of truth for grid size, path order, tile identity, and building references.
+The building catalog remains available as an editor palette/library, but it does not determine map placement.
 
 The current prototype uses these pure rule combinations:
 
@@ -93,7 +97,7 @@ Blank tiles and tiles without a building definition never produce an event.
 
 ## Building Rules
 
-Buildings are authored as `BuildingConfig` ScriptableObject assets under `Assets/Data/Buildings`. `PrototypeBuildingCatalog.asset` references all 13 non-blank prototype building assets and is assigned to the `Prototype Bootstrapper` object in `Assets/Scenes/SampleScene.unity`. Core rules do not consume ScriptableObjects directly. `BuildingConfig.ToDefinition()` produces a pure `BuildingDefinition` with:
+Buildings are authored as `BuildingConfig` ScriptableObject assets under `Assets/Data/Buildings`. `Assets/Data/Maps/PrototypeMapData.asset` is assigned to the `Prototype Bootstrapper` object in `Assets/Scenes/SampleScene.unity`; the building catalog remains an editor palette/library. Core rules do not consume ScriptableObjects directly. `BuildingConfig.ToDefinition()` produces a pure `BuildingDefinition` with:
 
 - A building name.
 - A `BuildingTriggerMode`.
@@ -115,7 +119,7 @@ Current building effect types are:
 
 `BuildingRuleResolver.Resolve(...)` takes a pure `BuildingDefinition` and a `MoveEventTiming`, then returns ordered `BuildingEffectCommand` values. These commands describe what should happen; they do not apply UI, animation, player state, or MonoBehaviour listener side effects by themselves.
 
-At Play time, `PrototypeBootstrapper` finds a `BuildingConfig` by the generated tile name and assigns it to `BoardTile`. `BoardTile.ToDefinition()` converts the asset to a pure `BuildingDefinition`, which is carried by `BoardMoveResolver.TileDefinition`. When movement reaches a tile, `BoardMoveResolver` resolves the building for the pass or stop timing and includes any resulting commands on the emitted `MoveEvent`.
+At Play time, `PrototypeBootstrapper` reads each ordered tile from `PrototypeMapData` and assigns its serialized `BuildingConfig` to `BoardTile`. `BoardTile.ToDefinition()` converts the asset to a pure `BuildingDefinition`, which is carried by `BoardMoveResolver.TileDefinition`. When movement reaches a tile, `BoardMoveResolver` resolves the building for the pass or stop timing and includes any resulting commands on the emitted `MoveEvent`.
 
 ## Confirmation Rules
 
@@ -127,7 +131,7 @@ Confirmation happens inside `BoardController.MoveRoutine(...)` by yielding on `C
 
 ## Testing Expectations
 
-Gameplay rule changes should update `Assets/Tests/EditMode/BoardMoveResolverTests.cs`. Prototype route data changes should update `Assets/Tests/EditMode/PrototypeBoardRouteTests.cs`. Building rule and authoring changes should update `Assets/Tests/EditMode/BuildingRuleResolverTests.cs`, `Assets/Tests/EditMode/BuildingConfigTests.cs`, or `Assets/Tests/EditMode/BoardTileBuildingTests.cs`.
+Gameplay rule changes should update `Assets/Tests/EditMode/BoardMoveResolverTests.cs`. Map data changes should update `Assets/Tests/EditMode/PrototypeMapDataTests.cs`. Building rule and authoring changes should update `Assets/Tests/EditMode/BuildingRuleResolverTests.cs`, `Assets/Tests/EditMode/BuildingConfigTests.cs`, or `Assets/Tests/EditMode/BoardTileBuildingTests.cs`.
 
 The current rule tests cover:
 
@@ -135,7 +139,8 @@ The current rule tests cover:
 - Stop events for final buildings with `Stop` or `PassOrStop` triggers.
 - Confirmation requirements emitted by building commands.
 - No events for blank tiles.
-- Default prototype route tile count, ordering, positions, and conversion into geometry-only resolver tile definitions.
+- Map data validation for square bounds, unique cells, adjacent path order, and closed-loop connectivity.
+- Default map asset tile count, ordering, dimensions, and conversion into resolver tile definitions.
 - Building trigger matching for pass, stop, and pass-or-stop timing.
 - Ordered building effect command output for money, teleport, confirmation, and feedback effects.
 - ScriptableObject building configs converting into pure building definitions.
@@ -149,8 +154,9 @@ When Unity batchmode is unavailable because the project is open in the Editor, r
 
 The next logic architecture pass should separate prototype responsibilities more clearly:
 
-- Route geometry is explicit in `PrototypeBoardRoute`; all building effects are authorable assets in `Assets/Data/Buildings`.
-- `PrototypeBuildingCatalog.asset` is the prototype scene's source of truth for which `BuildingConfig` asset belongs to each named non-blank tile.
+- Map geometry and path order are authored in `PrototypeMapData`; all building effects remain authorable assets in `Assets/Data/Buildings`.
+- `PrototypeMapData.asset` is the prototype scene's source of truth for which `BuildingConfig` belongs to each ordered tile.
+- `PrototypeMapPainterWindow` is intentionally data-only; runtime visuals remain generated by `PrototypeBootstrapper`.
 - Dice rolling is now injectable through `IDiceRoller`; a later controller-level test harness can drive deterministic movement without depending on Unity random.
 - The old `FacilityInteractionType`, route feedback fields, and controller facility branch have been removed; building commands are the only interaction path.
 - Money and teleport commands are currently surfaced as feedback logs by `BoardController`; future passes should connect them to dedicated player state and movement handlers.

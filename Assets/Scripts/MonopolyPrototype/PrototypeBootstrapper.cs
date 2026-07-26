@@ -8,7 +8,9 @@ namespace MonopolyPrototype
 {
     public sealed class PrototypeBootstrapper : MonoBehaviour
     {
-        [SerializeField] private PrototypeBuildingCatalog buildingCatalog;
+        [SerializeField] private PrototypeMapData mapData;
+        [SerializeField] private Vector2 boardOrigin = PrototypeMapLayout.DefaultOrigin;
+        [SerializeField] private Vector2 tileSpacing = PrototypeMapLayout.DefaultSpacing;
 
         private void Awake()
         {
@@ -56,31 +58,45 @@ namespace MonopolyPrototype
         {
             var parent = new GameObject("Prototype Board").transform;
             var sprite = CreateSquareSprite();
-            var definitions = PrototypeBoardRoute.Default;
+            if (mapData == null)
+            {
+                Debug.LogError("Prototype Bootstrapper needs a PrototypeMapData asset.");
+                return new List<BoardTile>();
+            }
+
+            if (!mapData.TryValidateClosedLoop(out var error))
+            {
+                Debug.LogError($"Prototype map data is invalid: {error}");
+                return new List<BoardTile>();
+            }
 
             var tiles = new List<BoardTile>();
-            for (var i = 0; i < definitions.Count; i++)
+            for (var i = 0; i < mapData.Tiles.Count; i++)
             {
-                var definition = definitions[i];
+                var mapTile = mapData.Tiles[i];
+                var definition = mapTile.ToDefinition();
                 var tileObject = new GameObject($"Tile - {definition.Name}");
                 tileObject.transform.SetParent(parent);
-                tileObject.transform.position = new Vector3(definition.Position.x, definition.Position.y, 0f);
+                tileObject.transform.position = GetTilePosition(mapTile.GridPosition);
 
-                var buildingConfig = buildingCatalog != null ? buildingCatalog.Find(definition.Name) : null;
-                var building = buildingConfig != null ? buildingConfig.ToDefinition() : null;
                 var renderer = tileObject.AddComponent<SpriteRenderer>();
                 renderer.sprite = sprite;
-                renderer.color = GetTileColor(building);
+                renderer.color = GetTileColor(definition.Building);
                 renderer.sortingOrder = 0;
 
                 var tile = tileObject.AddComponent<BoardTile>();
-                tile.Configure(definition.Name, buildingConfig);
+                tile.Configure(definition.Name, mapTile.BuildingConfig);
                 tiles.Add(tile);
 
                 CreateTileLabel(tileObject.transform, definition.Name);
             }
 
             return tiles;
+        }
+
+        private Vector3 GetTilePosition(Vector2Int gridPosition)
+        {
+            return PrototypeMapLayout.GetWorldPosition(gridPosition, boardOrigin, tileSpacing);
         }
 
         private static PlayerToken CreateToken()
