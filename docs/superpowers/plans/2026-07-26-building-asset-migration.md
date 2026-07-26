@@ -26,13 +26,13 @@
 - Test: `Assets/Tests/EditMode/PrototypeBuildingCatalogTests.cs`
 - Test: `Assets/Tests/EditMode/BoardTileBuildingTests.cs`
 
-- [ ] Write a failing test that configures two `BuildingConfig` objects, registers them in a catalog, and verifies `Find("Bank")` returns the Bank asset while an unknown name returns null.
-- [ ] Run the targeted Roslyn test compile and confirm it fails because `PrototypeBuildingCatalog` is missing.
-- [ ] Write the minimal catalog with serialized `List<BuildingConfig>`, `Configure(IReadOnlyList<BuildingConfig>)` for tests, and `Find(string)` for runtime lookup.
-- [ ] Expose `BuildingConfig.BuildingName` for catalog matching.
-- [ ] Remove the runtime `BuildingDefinition` parameter from `BoardTile.Configure`; keep `BoardTile.ToDefinition()` converting only its serialized `BuildingConfig`.
-- [ ] Update the existing BoardTile test to verify the SO conversion path only.
-- [ ] Re-run the targeted tests and confirm green.
+- [x] Write a failing test that configures two `BuildingConfig` objects, registers them in a catalog, and verifies `Find("Bank")` returns the Bank asset while an unknown name returns null.
+- [x] Run the targeted Roslyn test compile and confirm it fails because `PrototypeBuildingCatalog` is missing.
+- [x] Write the minimal catalog with serialized `List<BuildingConfig>`, `Configure(IReadOnlyList<BuildingConfig>)` for tests, and `Find(string)` for runtime lookup.
+- [x] Expose `BuildingConfig.BuildingName` for catalog matching.
+- [x] Remove the runtime `BuildingDefinition` parameter from `BoardTile.Configure`; keep `BoardTile.ToDefinition()` converting only its serialized `BuildingConfig`.
+- [x] Update the existing BoardTile test to verify the SO conversion path only.
+- [x] Re-run the targeted tests and confirm green at compile level; Unity execution remains blocked by the open Editor.
 
 ### Task 2: Wire the scene bootstrapper to the catalog
 
@@ -40,11 +40,11 @@
 - Modify: `Assets/Scripts/MonopolyPrototype/PrototypeBootstrapper.cs`
 - Test: `Assets/Tests/EditMode/PrototypeBuildingCatalogTests.cs`
 
-- [ ] Add a serialized `PrototypeBuildingCatalog buildingCatalog` field to `PrototypeBootstrapper`.
-- [ ] During board creation, look up the tile name in the catalog and pass the resulting config to `BoardTile.Configure`.
-- [ ] Keep route geometry, labels, and legacy `FacilityInteractionType` data in `PrototypeBoardRoute`; building effects come only from the catalog lookup.
-- [ ] Add a test that a configured tile converts the catalog-provided asset into the expected pure definition.
-- [ ] Compile the runtime and EditMode assemblies with Unity's Roslyn response files.
+- [x] Add a serialized `PrototypeBuildingCatalog buildingCatalog` field to `PrototypeBootstrapper`.
+- [x] During board creation, look up the tile name in the catalog and pass the resulting config to `BoardTile.Configure`.
+- [x] Keep route geometry, labels, and legacy `FacilityInteractionType` data in `PrototypeBoardRoute`; building effects come only from the catalog lookup.
+- [x] Add a test that a configured tile converts the catalog-provided asset into the expected pure definition.
+- [x] Compile the runtime and EditMode assemblies with Unity's Roslyn response files.
 
 ### Task 3: Create and reference actual Unity assets
 
@@ -56,10 +56,10 @@
 - Create: `Assets/Data/Buildings/PrototypeBuildingCatalog.asset` and `.meta`
 - Modify: `Assets/Scenes/SampleScene.unity`
 
-- [ ] Serialize the current Bank, Gate, Shop, and Harbor trigger/effect values into four `BuildingConfig` assets.
-- [ ] Serialize the four asset references into `PrototypeBuildingCatalog.asset`.
-- [ ] Add the catalog reference to the `Prototype Bootstrapper` component in `SampleScene.unity`.
-- [ ] Verify the GUID in every YAML reference matches its `.meta` file.
+- [x] Serialize the current Bank, Gate, Shop, and Harbor trigger/effect values into four `BuildingConfig` assets.
+- [x] Serialize the four asset references into `PrototypeBuildingCatalog.asset`.
+- [x] Add the catalog reference to the `Prototype Bootstrapper` component in `SampleScene.unity`.
+- [x] Verify the GUID in every YAML reference matches its `.meta` file.
 
 ### Task 4: Delete duplicate route definitions and document the new source of truth
 
@@ -68,14 +68,14 @@
 - Modify: `Assets/Tests/EditMode/PrototypeBoardRouteTests.cs`
 - Modify: `docs/game-logic/logic-overview.md`
 
-- [ ] Remove `TileSpec.Building`, the optional building constructor argument, and `CreateBank`, `CreateGate`, `CreateShop`, and `CreateHarbor`.
-- [ ] Change `TileSpec.ToDefinition()` to create tiles without a building; runtime tiles obtain building data from `PrototypeBuildingCatalog`.
-- [ ] Replace route tests that asserted embedded definitions with tests asserting route geometry/facility behavior remains intact.
-- [ ] Document the catalog asset and the scene data flow as the new source of truth.
+- [x] Remove `TileSpec.Building`, the optional building constructor argument, and `CreateBank`, `CreateGate`, `CreateShop`, and `CreateHarbor`.
+- [x] Change `TileSpec.ToDefinition()` to create tiles without a building; runtime tiles obtain building data from `PrototypeBuildingCatalog`.
+- [x] Replace route tests that asserted embedded definitions with tests asserting route geometry/facility behavior remains intact.
+- [x] Document the catalog asset and the scene data flow as the new source of truth.
 
 ### Task 5: Verify and commit
 
-- [ ] Run `git diff --check`.
-- [ ] Run the full available script compile check and targeted reflected rule tests; report if Unity batchmode remains blocked by the open Editor.
-- [ ] Inspect the final diff for stale `CreateBank`/`TileSpec.Building` references and confirm the catalog asset is referenced by the scene.
-- [ ] Commit the focused migration and push the feature branch.
+- [x] Run `git diff --check`.
+- [x] Run the full available script compile check; Unity EditMode execution is blocked by the open Editor and is reported explicitly.
+- [x] Inspect the final diff for stale `CreateBank`/`TileSpec.Building` references and confirm the catalog asset is referenced by the scene.
+- [x] Commit the focused migration and push the feature branch.

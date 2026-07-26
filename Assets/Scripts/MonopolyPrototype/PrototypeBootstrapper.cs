@@ -8,6 +8,8 @@ namespace MonopolyPrototype
 {
     public sealed class PrototypeBootstrapper : MonoBehaviour
     {
+        [SerializeField] private PrototypeBuildingCatalog buildingCatalog;
+
         private void Awake()
         {
             SetupCamera();
@@ -50,7 +52,7 @@ namespace MonopolyPrototype
             eventSystemObject.AddComponent<InputSystemUIInputModule>();
         }
 
-        private static IReadOnlyList<BoardTile> CreateBoard()
+        private IReadOnlyList<BoardTile> CreateBoard()
         {
             var parent = new GameObject("Prototype Board").transform;
             var sprite = CreateSquareSprite();
@@ -70,7 +72,11 @@ namespace MonopolyPrototype
                 renderer.sortingOrder = 0;
 
                 var tile = tileObject.AddComponent<BoardTile>();
-                tile.Configure(definition.Name, definition.InteractionType, definition.FeedbackLog, definition.Building);
+                tile.Configure(
+                    definition.Name,
+                    definition.InteractionType,
+                    definition.FeedbackLog,
+                    buildingCatalog != null ? buildingCatalog.Find(definition.Name) : null);
                 tiles.Add(tile);
 
                 CreateTileLabel(tileObject.transform, definition.Name);

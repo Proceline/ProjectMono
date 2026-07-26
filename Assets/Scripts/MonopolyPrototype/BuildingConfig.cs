@@ -10,6 +10,8 @@ namespace MonopolyPrototype
         [SerializeField] private BuildingTriggerMode triggerMode = BuildingTriggerMode.Stop;
         [SerializeField] private List<BuildingEffectConfig> effects = new List<BuildingEffectConfig>();
 
+        public string BuildingName => buildingName;
+
         public BuildingDefinition ToDefinition()
         {
             var definitions = new List<BuildingEffectDefinition>();
