@@ -88,4 +88,4 @@
 - [x] Replace the legacy facility section with building trigger/effect rules and the full asset catalog source of truth.
 - [x] Document that all non-blank prototype tiles are SO-authored and that `Blank` is the only empty tile.
 - [x] Run `git diff --check`, runtime compile, and EditMode test compile. Unity CLI EditMode execution is blocked because the project is already open in another Unity instance.
-- [ ] Commit the focused migration and push the feature branch without merging.
+- [x] Commit the focused migration and push the feature branch without merging.
