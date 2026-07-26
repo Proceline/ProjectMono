@@ -102,27 +102,13 @@ namespace MonopolyPrototype
                 if (!isFinalStep)
                 {
                     var moveEvent = result.Events.FirstOrDefault(evt => evt.TileIndex == currentIndex && evt.Timing == MoveEventTiming.Pass);
-                    if (!string.IsNullOrWhiteSpace(moveEvent.Message))
-                    {
-                        logView?.AddLine(moveEvent.Message);
-                        if (moveEvent.RequiresConfirmation && confirmationView != null)
-                        {
-                            yield return confirmationView.WaitForConfirmation(moveEvent.Message);
-                        }
-                    }
+                    yield return HandleMoveEvent(moveEvent);
                 }
             }
 
             currentIndex = result.EndIndex;
             var stopEvent = result.Events.FirstOrDefault(evt => evt.TileIndex == currentIndex && evt.Timing == MoveEventTiming.Stop);
-            if (!string.IsNullOrWhiteSpace(stopEvent.Message))
-            {
-                logView?.AddLine(stopEvent.Message);
-                if (stopEvent.RequiresConfirmation && confirmationView != null)
-                {
-                    yield return confirmationView.WaitForConfirmation(stopEvent.Message);
-                }
-            }
+            yield return HandleMoveEvent(stopEvent);
 
             if (rollButton != null)
             {
@@ -130,6 +116,62 @@ namespace MonopolyPrototype
             }
 
             isMoving = false;
+        }
+
+        private IEnumerator HandleMoveEvent(BoardMoveResolver.MoveEvent moveEvent)
+        {
+            if (!string.IsNullOrWhiteSpace(moveEvent.Message))
+            {
+                logView?.AddLine(moveEvent.Message);
+                if (IsFacilityConfirmation(moveEvent) && confirmationView != null)
+                {
+                    yield return confirmationView.WaitForConfirmation(moveEvent.Message);
+                }
+            }
+
+            if (moveEvent.BuildingCommands == null)
+            {
+                yield break;
+            }
+
+            for (var i = 0; i < moveEvent.BuildingCommands.Count; i++)
+            {
+                var command = moveEvent.BuildingCommands[i];
+                switch (command.EffectType)
+                {
+                    case BuildingEffectType.AddMoney:
+                    case BuildingEffectType.SubtractMoney:
+                        logView?.AddLine($"Money change: {command.MoneyDelta:+#;-#;0}.");
+                        break;
+                    case BuildingEffectType.Teleport:
+                        logView?.AddLine($"Teleport requested to tile {command.TargetTileIndex}.");
+                        break;
+                    case BuildingEffectType.ShowFeedback:
+                        if (!string.IsNullOrWhiteSpace(command.Message))
+                        {
+                            logView?.AddLine(command.Message);
+                        }
+
+                        break;
+                    case BuildingEffectType.RequestConfirmation:
+                        var message = string.IsNullOrWhiteSpace(command.Message)
+                            ? "Confirm building effect."
+                            : command.Message;
+                        logView?.AddLine(message);
+                        if (confirmationView != null)
+                        {
+                            yield return confirmationView.WaitForConfirmation(message);
+                        }
+
+                        break;
+                }
+            }
+        }
+
+        private static bool IsFacilityConfirmation(BoardMoveResolver.MoveEvent moveEvent)
+        {
+            return moveEvent.InteractionType == FacilityInteractionType.PassConfirmFeedback
+                || moveEvent.InteractionType == FacilityInteractionType.StopConfirmFeedback;
         }
     }
 }

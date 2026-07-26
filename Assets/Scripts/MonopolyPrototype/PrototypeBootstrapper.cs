@@ -70,7 +70,7 @@ namespace MonopolyPrototype
                 renderer.sortingOrder = 0;
 
                 var tile = tileObject.AddComponent<BoardTile>();
-                tile.Configure(definition.Name, definition.InteractionType, definition.FeedbackLog);
+                tile.Configure(definition.Name, definition.InteractionType, definition.FeedbackLog, definition.Building);
                 tiles.Add(tile);
 
                 CreateTileLabel(tileObject.transform, definition.Name);

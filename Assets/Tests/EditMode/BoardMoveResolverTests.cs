@@ -102,4 +102,61 @@ public class BoardMoveResolverTests
         CollectionAssert.IsEmpty(result.Events);
         Assert.AreEqual(2, result.EndIndex);
     }
+
+    [Test]
+    public void ResolveMove_CreatesPassEventForIntermediateBuilding()
+    {
+        var bank = new BuildingDefinition(
+            "Bank",
+            BuildingTriggerMode.Pass,
+            new[]
+            {
+                BuildingEffectDefinition.AddMoney(100),
+                BuildingEffectDefinition.ShowFeedback("Passed bank."),
+            });
+        var tiles = new List<BoardMoveResolver.TileDefinition>
+        {
+            new BoardMoveResolver.TileDefinition("Start", FacilityInteractionType.None, ""),
+            new BoardMoveResolver.TileDefinition("Bank", FacilityInteractionType.None, "", bank),
+            new BoardMoveResolver.TileDefinition("Blank", FacilityInteractionType.None, ""),
+        };
+
+        var result = BoardMoveResolver.ResolveMove(tiles, startIndex: 0, steps: 2);
+
+        Assert.AreEqual(1, result.Events.Count);
+        Assert.AreEqual(MoveEventTiming.Pass, result.Events[0].Timing);
+        Assert.AreSame(bank, result.Events[0].Building);
+        Assert.AreEqual(2, result.Events[0].BuildingCommands.Count);
+        Assert.AreEqual(BuildingEffectType.AddMoney, result.Events[0].BuildingCommands[0].EffectType);
+        Assert.AreEqual(100, result.Events[0].BuildingCommands[0].MoneyDelta);
+        Assert.AreEqual(BuildingEffectType.ShowFeedback, result.Events[0].BuildingCommands[1].EffectType);
+        Assert.AreEqual("Passed bank.", result.Events[0].BuildingCommands[1].Message);
+    }
+
+    [Test]
+    public void ResolveMove_CreatesStopEventForFinalPassOrStopBuilding()
+    {
+        var gate = new BuildingDefinition(
+            "Gate",
+            BuildingTriggerMode.PassOrStop,
+            new[]
+            {
+                BuildingEffectDefinition.RequestConfirmation("Confirm gate."),
+            });
+        var tiles = new List<BoardMoveResolver.TileDefinition>
+        {
+            new BoardMoveResolver.TileDefinition("Start", FacilityInteractionType.None, ""),
+            new BoardMoveResolver.TileDefinition("Gate", FacilityInteractionType.None, "", gate),
+        };
+
+        var result = BoardMoveResolver.ResolveMove(tiles, startIndex: 0, steps: 1);
+
+        Assert.AreEqual(1, result.Events.Count);
+        Assert.AreEqual(MoveEventTiming.Stop, result.Events[0].Timing);
+        Assert.AreSame(gate, result.Events[0].Building);
+        Assert.AreEqual(1, result.Events[0].BuildingCommands.Count);
+        Assert.IsTrue(result.Events[0].RequiresConfirmation);
+        Assert.AreEqual(BuildingEffectType.RequestConfirmation, result.Events[0].BuildingCommands[0].EffectType);
+        Assert.AreEqual("Confirm gate.", result.Events[0].BuildingCommands[0].Message);
+    }
 }
