@@ -9,8 +9,11 @@ namespace MonopolyPrototype
     public sealed class PrototypeBootstrapper : MonoBehaviour
     {
         [SerializeField] private PrototypeMapData mapData;
-        [SerializeField] private Vector2 boardOrigin = PrototypeMapLayout.DefaultOrigin;
+        [SerializeField] private Vector2 boardCenter = PrototypeMapLayout.DefaultCenter;
         [SerializeField] private Vector2 tileSpacing = PrototypeMapLayout.DefaultSpacing;
+        [SerializeField, Min(0.1f)] private float tileScale = PrototypeMapLayout.DefaultTileScale;
+        [SerializeField] private bool fitCameraToBoard = true;
+        [SerializeField, Min(0f)] private float cameraPadding = 0.8f;
 
         private void Awake()
         {
@@ -25,7 +28,7 @@ namespace MonopolyPrototype
             controller.Configure(tiles, token, ui.LogView, ui.ConfirmationView, ui.RollButton);
         }
 
-        private static void SetupCamera()
+        private void SetupCamera()
         {
             var camera = Camera.main;
             if (camera == null)
@@ -36,8 +39,22 @@ namespace MonopolyPrototype
             }
 
             camera.orthographic = true;
-            camera.orthographicSize = 4.8f;
-            camera.transform.position = new Vector3(0f, -0.65f, -10f);
+            var mapSize = mapData == null
+                ? new Vector2Int(6, 6)
+                : new Vector2Int(mapData.Width, mapData.Height);
+            var boardBounds = PrototypeMapLayout.GetWorldBounds(
+                mapSize,
+                boardCenter,
+                tileSpacing,
+                Mathf.Max(0.1f, tileScale));
+            var aspect = Mathf.Max(0.1f, camera.aspect);
+            var requiredSize = Mathf.Max(
+                boardBounds.size.y * 0.5f,
+                boardBounds.size.x / (2f * aspect));
+            camera.orthographicSize = fitCameraToBoard
+                ? requiredSize + cameraPadding
+                : Mathf.Max(0.1f, camera.orthographicSize);
+            camera.transform.position = new Vector3(boardCenter.x, boardCenter.y, -10f);
             camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = new Color(0.07f, 0.09f, 0.11f);
         }
@@ -77,6 +94,7 @@ namespace MonopolyPrototype
                 var definition = mapTile.ToDefinition();
                 var tileObject = new GameObject($"Tile - {definition.Name}");
                 tileObject.transform.SetParent(parent);
+                tileObject.transform.localScale = Vector3.one * Mathf.Max(0.1f, tileScale);
                 tileObject.transform.position = GetTilePosition(mapTile.GridPosition);
 
                 var renderer = tileObject.AddComponent<SpriteRenderer>();
@@ -96,7 +114,10 @@ namespace MonopolyPrototype
 
         private Vector3 GetTilePosition(Vector2Int gridPosition)
         {
-            return PrototypeMapLayout.GetWorldPosition(gridPosition, boardOrigin, tileSpacing);
+            var mapSize = mapData == null
+                ? new Vector2Int(6, 6)
+                : new Vector2Int(mapData.Width, mapData.Height);
+            return PrototypeMapLayout.GetWorldPosition(gridPosition, mapSize, boardCenter, tileSpacing);
         }
 
         private static PlayerToken CreateToken()
@@ -281,7 +302,7 @@ namespace MonopolyPrototype
             var texture = new Texture2D(1, 1);
             texture.SetPixel(0, 0, Color.white);
             texture.Apply();
-            return Sprite.Create(texture, new Rect(0, 0, 1, 1), new Vector2(0.5f, 0.5f), 0.65f);
+            return Sprite.Create(texture, new Rect(0, 0, 1, 1), new Vector2(0.5f, 0.5f), 1f);
         }
     }
 }

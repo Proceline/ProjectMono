@@ -29,13 +29,13 @@ The prototype is intentionally narrow:
 - `Assets/Scripts/MonopolyPrototype/BuildingConfig.cs`
   - ScriptableObject authoring layer for buildings.
   - Converts Unity-authored data into pure `BuildingDefinition` values before rule resolution.
-- `Assets/Scripts/MonopolyPrototype/PrototypeBuildingCatalog.cs`
-  - Optional ScriptableObject library of building assets used by the editor palette.
-  - It is not the runtime source of map placement or route order.
 - `Assets/Scripts/MonopolyPrototype/PrototypeMapData.cs`
   - ScriptableObject map data: square grid size and ordered path tiles.
   - Stores each tile's grid coordinate, name, and optional `BuildingConfig` reference.
   - Validates bounds, unique cells, orthogonal adjacency, and closed-loop connectivity.
+- `Assets/Scripts/MonopolyPrototype/PrototypeMapLayout.cs`
+  - Pure layout helper shared by runtime board generation and the editor preview.
+  - Converts grid coordinates into positions around a configurable center and spacing, and calculates camera-fit bounds.
 - `Assets/Scripts/MonopolyPrototype/DiceRollers.cs`
   - Defines the `IDiceRoller` contract used by runtime flow.
   - `UnityRandomDiceRoller` is the default 1-6 Unity random implementation.
@@ -60,12 +60,13 @@ The prototype is intentionally narrow:
   - Editor-only map authoring tool.
   - Draws an N x N placeholder grid in the Scene view and stores only map data; it does not create runtime visual objects.
   - Clicking an existing cell with a selected building replaces that cell while preserving path order. `Erase` removes the selected cell, while `Blank` remains a valid tile type.
+  - The Scene preview exposes center, spacing, and visual scale controls.
 
 ## Building-backed Tile Behavior
 
 Every non-blank map tile is backed by one `BuildingConfig` asset in `Assets/Data/Buildings`.
-`Assets/Data/Maps/PrototypeMapData.asset` is the runtime source of truth for grid size, path order, tile identity, and building references.
-The building catalog remains available as an editor palette/library, but it does not determine map placement.
+The `PrototypeMapData` asset assigned to the scene is the runtime source of truth for grid size, path order, tile identity, and building references.
+The Map Painter discovers the individual `BuildingConfig` assets directly for its palette; the palette is not a source of map placement.
 
 The current prototype uses these pure rule combinations:
 
@@ -98,7 +99,7 @@ Blank tiles and tiles without a building definition never produce an event.
 
 ## Building Rules
 
-Buildings are authored as `BuildingConfig` ScriptableObject assets under `Assets/Data/Buildings`. `Assets/Data/Maps/PrototypeMapData.asset` is assigned to the `Prototype Bootstrapper` object in `Assets/Scenes/SampleScene.unity`; the building catalog remains an editor palette/library. Core rules do not consume ScriptableObjects directly. `BuildingConfig.ToDefinition()` produces a pure `BuildingDefinition` with:
+Buildings are authored as `BuildingConfig` ScriptableObject assets under `Assets/Data/Buildings`. A `PrototypeMapData` asset is assigned to the `Prototype Bootstrapper` object in `Assets/Scenes/SampleScene.unity`; each map tile directly references its building asset. Core rules do not consume ScriptableObjects directly. `BuildingConfig.ToDefinition()` produces a pure `BuildingDefinition` with:
 
 - A building name.
 - A `BuildingTriggerMode`.
@@ -121,6 +122,8 @@ Current building effect types are:
 `BuildingRuleResolver.Resolve(...)` takes a pure `BuildingDefinition` and a `MoveEventTiming`, then returns ordered `BuildingEffectCommand` values. These commands describe what should happen; they do not apply UI, animation, player state, or MonoBehaviour listener side effects by themselves.
 
 At Play time, `PrototypeBootstrapper` reads each ordered tile from `PrototypeMapData` and assigns its serialized `BuildingConfig` to `BoardTile`. `BoardTile.ToDefinition()` converts the asset to a pure `BuildingDefinition`, which is carried by `BoardMoveResolver.TileDefinition`. When movement reaches a tile, `BoardMoveResolver` resolves the building for the pass or stop timing and includes any resulting commands on the emitted `MoveEvent`.
+
+The runtime layout uses the map's square dimensions together with `boardCenter`, `tileSpacing`, and `tileScale`. When `fitCameraToBoard` is enabled, the orthographic camera centers on the board and calculates its size from the map bounds plus `cameraPadding`.
 
 ## Confirmation Rules
 
@@ -145,9 +148,8 @@ The current rule tests cover:
 - Building trigger matching for pass, stop, and pass-or-stop timing.
 - Ordered building effect command output for money, teleport, confirmation, and feedback effects.
 - ScriptableObject building configs converting into pure building definitions.
-- Building catalogs resolving named `BuildingConfig` assets.
-- Prototype building asset tests covering all 13 catalog entries, effect ordering, money payloads, and teleport targets.
-- Board tiles converting catalog-provided building configs into pure definitions.
+- Prototype building asset tests covering all 13 individual building assets, effect ordering, money payloads, and teleport targets.
+- Board tiles converting map-provided building configs into pure definitions.
 
 When Unity batchmode is unavailable because the project is open in the Editor, run a script compile check and the reflected core rule tests, then state the limitation clearly.
 

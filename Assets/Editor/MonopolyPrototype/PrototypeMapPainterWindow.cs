@@ -10,14 +10,15 @@ namespace MonopolyPrototype.EditorTools
     {
         private const int MinMapSize = 2;
         private const int MaxMapSize = 20;
-        private static readonly Vector2 SceneGridOrigin = PrototypeMapLayout.DefaultOrigin;
-        private static readonly Vector2 SceneGridSpacing = PrototypeMapLayout.DefaultSpacing;
 
         [SerializeField] private int mapSize = 6;
         [SerializeField] private PrototypeMapData loadedMap;
         [SerializeField] private BuildingConfig selectedBuilding;
         [SerializeField] private bool eraseMode;
         [SerializeField] private Vector2 paletteScroll;
+        [SerializeField] private Vector2 sceneCenter = PrototypeMapLayout.DefaultCenter;
+        [SerializeField] private Vector2 sceneSpacing = PrototypeMapLayout.DefaultSpacing;
+        [SerializeField, Min(0.1f)] private float sceneTileScale = PrototypeMapLayout.DefaultTileScale;
 
         [SerializeField] private List<PrototypeMapTileData> path = new List<PrototypeMapTileData>();
         [SerializeField] private bool pathInitialized;
@@ -83,6 +84,8 @@ namespace MonopolyPrototype.EditorTools
                 }
             }
 
+            DrawLayoutControls();
+
             using (new EditorGUILayout.HorizontalScope())
             {
                 if (GUILayout.Button("New"))
@@ -122,6 +125,19 @@ namespace MonopolyPrototype.EditorTools
 
             DrawPalette();
             DrawGridPalette();
+        }
+
+        private void DrawLayoutControls()
+        {
+            EditorGUILayout.LabelField("Scene Preview Layout", EditorStyles.boldLabel);
+            EditorGUI.BeginChangeCheck();
+            sceneCenter = EditorGUILayout.Vector2Field("Center", sceneCenter);
+            sceneSpacing = EditorGUILayout.Vector2Field("Spacing", sceneSpacing);
+            sceneTileScale = EditorGUILayout.Slider("Scale", sceneTileScale, 0.1f, 3f);
+            if (EditorGUI.EndChangeCheck())
+            {
+                SceneView.RepaintAll();
+            }
         }
 
         private void DrawPalette()
@@ -215,17 +231,18 @@ namespace MonopolyPrototype.EditorTools
                     var worldPosition = GetScenePosition(gridPosition);
                     var tileIndex = FindTileIndex(gridPosition);
                     var previousColor = Handles.color;
+                    var tileSize = Mathf.Max(0.1f, sceneTileScale);
                     Handles.color = tileIndex >= 0
                         ? new Color(0.95f, 0.78f, 0.22f, 0.85f)
                         : new Color(0.55f, 0.65f, 0.75f, 0.65f);
-                    Handles.DrawWireCube(worldPosition, new Vector3(0.95f, 0.95f, 0.02f));
+                    Handles.DrawWireCube(worldPosition, new Vector3(tileSize, tileSize, 0.02f));
                     Handles.color = previousColor;
 
                     if (Handles.Button(
                             worldPosition,
                             Quaternion.identity,
-                            0.42f,
-                            0.42f,
+                            tileSize * 0.42f,
+                            tileSize * 0.42f,
                             Handles.RectangleHandleCap))
                     {
                         TryAddTile(gridPosition);
@@ -468,10 +485,11 @@ namespace MonopolyPrototype.EditorTools
 
         private Vector3 GetScenePosition(Vector2Int gridPosition)
         {
-            return new Vector3(
-                SceneGridOrigin.x + gridPosition.x * SceneGridSpacing.x,
-                SceneGridOrigin.y + gridPosition.y * SceneGridSpacing.y,
-                0f);
+            return PrototypeMapLayout.GetWorldPosition(
+                gridPosition,
+                new Vector2Int(mapSize, mapSize),
+                sceneCenter,
+                sceneSpacing);
         }
     }
 }

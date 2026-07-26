@@ -7,13 +7,8 @@ using UnityEngine.SceneManagement;
 public class PrototypeBuildingAssetTests
 {
     [Test]
-    public void CatalogAsset_ContainsConfiguredPrototypeBuildings()
+    public void BuildingAssets_ContainConfiguredPrototypeBuildings()
     {
-        var catalog = AssetDatabase.LoadAssetAtPath<PrototypeBuildingCatalog>(
-            "Assets/Data/Buildings/PrototypeBuildingCatalog.asset");
-
-        Assert.IsNotNull(catalog);
-
         var expectedNames = new[]
         {
             "Start", "Bank", "Gate", "Shop", "Station", "Park", "Library",
@@ -21,59 +16,57 @@ public class PrototypeBuildingAssetTests
         };
         for (var i = 0; i < expectedNames.Length; i++)
         {
-            Assert.IsNotNull(catalog.Find(expectedNames[i]), expectedNames[i]);
+            Assert.IsNotNull(LoadBuilding(expectedNames[i]), expectedNames[i]);
         }
-        Assert.IsNull(catalog.Find("Blank"));
 
-        AssertBuilding(catalog, "Start", BuildingTriggerMode.Stop,
+        AssertBuilding("Start", BuildingTriggerMode.Stop,
             new[] { BuildingEffectType.ShowFeedback },
             new[] { "Stopped at Start." });
-        AssertBuilding(catalog, "Bank", BuildingTriggerMode.PassOrStop,
+        AssertBuilding("Bank", BuildingTriggerMode.PassOrStop,
             new[] { BuildingEffectType.ShowFeedback, BuildingEffectType.AddMoney, BuildingEffectType.ShowFeedback },
             new[] { "Passed Bank: auto bonus feedback.", string.Empty, "Bank bonus: +100 money." });
-        AssertBuilding(catalog, "Gate", BuildingTriggerMode.PassOrStop,
+        AssertBuilding("Gate", BuildingTriggerMode.PassOrStop,
             new[] { BuildingEffectType.RequestConfirmation, BuildingEffectType.ShowFeedback },
             new[] { "Gate checkpoint: confirm before moving on.", "Gate checkpoint cleared." });
-        AssertBuilding(catalog, "Shop", BuildingTriggerMode.Stop,
+        AssertBuilding("Shop", BuildingTriggerMode.Stop,
             new[] { BuildingEffectType.RequestConfirmation, BuildingEffectType.SubtractMoney, BuildingEffectType.ShowFeedback },
             new[] { "Shop visit: confirm the stop action.", string.Empty, "Shop fee: -40 money." });
-        AssertBuilding(catalog, "Station", BuildingTriggerMode.PassOrStop,
+        AssertBuilding("Station", BuildingTriggerMode.PassOrStop,
             new[] { BuildingEffectType.RequestConfirmation },
             new[] { "Station crossing: confirm the train signal." });
-        AssertBuilding(catalog, "Park", BuildingTriggerMode.Stop,
+        AssertBuilding("Park", BuildingTriggerMode.Stop,
             new[] { BuildingEffectType.ShowFeedback },
             new[] { "Stopped at Park." });
-        AssertBuilding(catalog, "Library", BuildingTriggerMode.PassOrStop,
+        AssertBuilding("Library", BuildingTriggerMode.PassOrStop,
             new[] { BuildingEffectType.ShowFeedback },
             new[] { "Passed Library: quiet auto feedback." });
-        AssertBuilding(catalog, "Museum", BuildingTriggerMode.Stop,
+        AssertBuilding("Museum", BuildingTriggerMode.Stop,
             new[] { BuildingEffectType.RequestConfirmation },
             new[] { "Museum visit: confirm the exhibit action." });
-        AssertBuilding(catalog, "Hotel", BuildingTriggerMode.PassOrStop,
+        AssertBuilding("Hotel", BuildingTriggerMode.PassOrStop,
             new[] { BuildingEffectType.ShowFeedback },
             new[] { "Passed Hotel: lobby feedback." });
-        AssertBuilding(catalog, "Market", BuildingTriggerMode.Stop,
+        AssertBuilding("Market", BuildingTriggerMode.Stop,
             new[] { BuildingEffectType.ShowFeedback },
             new[] { "Stopped at Market." });
-        AssertBuilding(catalog, "Clinic", BuildingTriggerMode.PassOrStop,
+        AssertBuilding("Clinic", BuildingTriggerMode.PassOrStop,
             new[] { BuildingEffectType.ShowFeedback },
             new[] { "Passed Clinic: auto health feedback." });
-        AssertBuilding(catalog, "Theater", BuildingTriggerMode.Stop,
+        AssertBuilding("Theater", BuildingTriggerMode.Stop,
             new[] { BuildingEffectType.RequestConfirmation },
             new[] { "Theater visit: confirm the show action." });
-        AssertBuilding(catalog, "Harbor", BuildingTriggerMode.PassOrStop,
+        AssertBuilding("Harbor", BuildingTriggerMode.PassOrStop,
             new[] { BuildingEffectType.RequestConfirmation, BuildingEffectType.Teleport },
             new[] { "Harbor crossing: confirm ship traffic.", string.Empty });
     }
 
     private static void AssertBuilding(
-        PrototypeBuildingCatalog catalog,
         string name,
         BuildingTriggerMode expectedTrigger,
         BuildingEffectType[] expectedEffects,
         string[] expectedMessages)
     {
-        var config = catalog.Find(name);
+        var config = LoadBuilding(name);
         Assert.IsNotNull(config, name);
 
         var definition = config.ToDefinition();
@@ -87,14 +80,11 @@ public class PrototypeBuildingAssetTests
     }
 
     [Test]
-    public void CatalogAssets_PreserveMoneyAndTeleportPayloads()
+    public void BuildingAssets_PreserveMoneyAndTeleportPayloads()
     {
-        var catalog = AssetDatabase.LoadAssetAtPath<PrototypeBuildingCatalog>(
-            "Assets/Data/Buildings/PrototypeBuildingCatalog.asset");
-
-        Assert.AreEqual(100, catalog.Find("Bank").ToDefinition().Effects[1].MoneyAmount);
-        Assert.AreEqual(40, catalog.Find("Shop").ToDefinition().Effects[1].MoneyAmount);
-        Assert.AreEqual(0, catalog.Find("Harbor").ToDefinition().Effects[1].TargetTileIndex);
+        Assert.AreEqual(100, LoadBuilding("Bank").ToDefinition().Effects[1].MoneyAmount);
+        Assert.AreEqual(40, LoadBuilding("Shop").ToDefinition().Effects[1].MoneyAmount);
+        Assert.AreEqual(0, LoadBuilding("Harbor").ToDefinition().Effects[1].TargetTileIndex);
     }
 
     [Test]
@@ -118,14 +108,17 @@ public class PrototypeBuildingAssetTests
             Assert.IsNotNull(bootstrapper);
             var serializedBootstrapper = new SerializedObject(bootstrapper);
             var mapData = serializedBootstrapper.FindProperty("mapData").objectReferenceValue;
-            var expectedMapData = AssetDatabase.LoadAssetAtPath<PrototypeMapData>(
-                "Assets/Data/Maps/PrototypeMapData.asset");
-
-            Assert.AreSame(expectedMapData, mapData);
+            Assert.IsNotNull(mapData);
+            Assert.IsInstanceOf<PrototypeMapData>(mapData);
         }
         finally
         {
             EditorSceneManager.CloseScene(scene, true);
         }
+    }
+
+    private static BuildingConfig LoadBuilding(string name)
+    {
+        return AssetDatabase.LoadAssetAtPath<BuildingConfig>($"Assets/Data/Buildings/{name}.asset");
     }
 }

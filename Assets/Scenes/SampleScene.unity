@@ -468,7 +468,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   mapData: {fileID: 11400000, guid: f36fb47dd02745ce94c442712e7266e9, type: 2}
-  boardOrigin: {x: -4.5, y: -2.5}
   tileSpacing: {x: 1.8, y: 1.7}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
