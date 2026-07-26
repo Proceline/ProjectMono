@@ -102,7 +102,7 @@ namespace MonopolyPrototype
             var commands = new List<BuildingEffectCommand>();
             for (var i = 0; i < building.Effects.Count; i++)
             {
-                commands.Add(ToCommand(building.Effects[i]));
+                commands.Add(CreateCommand(building.Effects[i]));
             }
 
             return commands;
@@ -115,7 +115,7 @@ namespace MonopolyPrototype
                 || triggerMode == BuildingTriggerMode.Stop && timing == MoveEventTiming.Stop;
         }
 
-        private static BuildingEffectCommand ToCommand(BuildingEffectDefinition effect)
+        public static BuildingEffectCommand CreateCommand(BuildingEffectDefinition effect)
         {
             switch (effect.EffectType)
             {

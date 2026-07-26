@@ -7,15 +7,21 @@ public class BuildingConfigTests
     [Test]
     public void ToDefinition_ConvertsScriptableObjectAuthoringDataToPureBuildingDefinition()
     {
+        var addMoney = ScriptableObject.CreateInstance<AddMoneyEffectAsset>();
+        addMoney.Configure(80);
+        var confirmation = ScriptableObject.CreateInstance<RequestConfirmationEffectAsset>();
+        confirmation.Configure("Confirm clinic visit.");
+        var feedback = ScriptableObject.CreateInstance<ShowFeedbackEffectAsset>();
+        feedback.Configure("Clinic helped you recover.");
         var config = ScriptableObject.CreateInstance<BuildingConfig>();
         config.Configure(
             "Clinic",
             BuildingTriggerMode.PassOrStop,
-            new[]
+            new BuildingEffectAsset[]
             {
-                BuildingEffectConfig.AddMoney(80),
-                BuildingEffectConfig.RequestConfirmation("Confirm clinic visit."),
-                BuildingEffectConfig.ShowFeedback("Clinic helped you recover."),
+                addMoney,
+                confirmation,
+                feedback,
             });
 
         var definition = config.ToDefinition();
@@ -29,18 +35,25 @@ public class BuildingConfigTests
         Assert.AreEqual("Confirm clinic visit.", definition.Effects[1].Message);
         Assert.AreEqual(BuildingEffectType.ShowFeedback, definition.Effects[2].EffectType);
         Assert.AreEqual("Clinic helped you recover.", definition.Effects[2].Message);
+
+        Object.DestroyImmediate(config);
+        Object.DestroyImmediate(addMoney);
+        Object.DestroyImmediate(confirmation);
+        Object.DestroyImmediate(feedback);
     }
 
     [Test]
     public void ToDefinition_ConvertsTeleportEffectTargetTile()
     {
+        var teleport = ScriptableObject.CreateInstance<TeleportEffectAsset>();
+        teleport.Configure(9);
         var config = ScriptableObject.CreateInstance<BuildingConfig>();
         config.Configure(
             "Harbor",
             BuildingTriggerMode.Stop,
-            new[]
+            new BuildingEffectAsset[]
             {
-                BuildingEffectConfig.TeleportTo(9),
+                teleport,
             });
 
         var definition = config.ToDefinition();
@@ -48,5 +61,31 @@ public class BuildingConfigTests
         Assert.AreEqual(1, definition.Effects.Count);
         Assert.AreEqual(BuildingEffectType.Teleport, definition.Effects[0].EffectType);
         Assert.AreEqual(9, definition.Effects[0].TargetTileIndex);
+
+        Object.DestroyImmediate(config);
+        Object.DestroyImmediate(teleport);
+    }
+
+    [Test]
+    public void TryValidate_RejectsMultipleConfirmationEffects()
+    {
+        var firstConfirmation = ScriptableObject.CreateInstance<RequestConfirmationEffectAsset>();
+        var secondConfirmation = ScriptableObject.CreateInstance<RequestConfirmationEffectAsset>();
+        var config = ScriptableObject.CreateInstance<BuildingConfig>();
+        config.Configure(
+            "Gate",
+            BuildingTriggerMode.PassOrStop,
+            new BuildingEffectAsset[]
+            {
+                firstConfirmation,
+                secondConfirmation,
+            });
+
+        Assert.IsFalse(config.TryValidate(out var error));
+        StringAssert.Contains("at most one RequestConfirmation", error);
+
+        Object.DestroyImmediate(config);
+        Object.DestroyImmediate(firstConfirmation);
+        Object.DestroyImmediate(secondConfirmation);
     }
 }

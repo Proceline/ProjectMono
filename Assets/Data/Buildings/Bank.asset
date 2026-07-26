@@ -15,15 +15,6 @@ MonoBehaviour:
   buildingName: Bank
   triggerMode: 2
   effects:
-  - effectType: 4
-    moneyAmount: 0
-    targetTileIndex: 0
-    message: 'Passed Bank: auto bonus feedback.'
-  - effectType: 0
-    moneyAmount: 100
-    targetTileIndex: 0
-    message:
-  - effectType: 4
-    moneyAmount: 0
-    targetTileIndex: 0
-    message: 'Bank bonus: +100 money.'
+  - {fileID: 11400000, guid: a1000000000000000000000000000002, type: 2}
+  - {fileID: 11400000, guid: a1000000000000000000000000000003, type: 2}
+  - {fileID: 11400000, guid: a1000000000000000000000000000004, type: 2}

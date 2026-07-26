@@ -28,7 +28,10 @@ The prototype is intentionally narrow:
   - Does not depend on UI, MonoBehaviour listeners, or ScriptableObjects.
 - `Assets/Scripts/MonopolyPrototype/BuildingConfig.cs`
   - ScriptableObject authoring layer for buildings.
-  - Converts Unity-authored data into pure `BuildingDefinition` values before rule resolution.
+  - Holds an ordered list of `BuildingEffectAsset` references and converts them into pure `BuildingDefinition` values before rule resolution.
+- `Assets/Scripts/MonopolyPrototype/BuildingEffectAsset.cs`
+  - ScriptableObject effect translator layer for add/subtract money, teleport, confirmation, and feedback.
+  - Each effect asset can produce a pure definition or a `BuildingEffectCommand`; it does not apply player state or UI side effects.
 - `Assets/Scripts/MonopolyPrototype/PrototypeMapData.cs`
   - ScriptableObject map data: square grid size and ordered path tiles.
   - Stores each tile's grid coordinate, name, and optional `BuildingConfig` reference.
@@ -76,7 +79,7 @@ The current prototype uses these pure rule combinations:
 - `PassOrStop` with `RequestConfirmation`: Gate, Station, Harbor.
 - Blank: no `BuildingConfig`, no event, and no feedback.
 
-An asset may contain multiple effects. Effects are resolved and emitted in serialized order, so confirmation, state-change requests, and feedback can be composed without introducing UI dependencies into the rule layer.
+An asset may contain multiple effect SO references. Effects are resolved and emitted in serialized order, so confirmation, state-change requests, and feedback can be composed without introducing UI dependencies into the rule layer. A building may contain at most one `RequestConfirmation` effect.
 
 ## Movement Resolution Rules
 
@@ -99,7 +102,7 @@ Blank tiles and tiles without a building definition never produce an event.
 
 ## Building Rules
 
-Buildings are authored as `BuildingConfig` ScriptableObject assets under `Assets/Data/Buildings`. A `PrototypeMapData` asset is assigned to the `Prototype Bootstrapper` object in `Assets/Scenes/SampleScene.unity`; each map tile directly references its building asset. Core rules do not consume ScriptableObjects directly. `BuildingConfig.ToDefinition()` produces a pure `BuildingDefinition` with:
+Buildings are authored as `BuildingConfig` ScriptableObject assets under `Assets/Data/Buildings`. Their ordered effects are separate `BuildingEffectAsset` ScriptableObjects under `Assets/Data/BuildingEffects`. A `PrototypeMapData` asset is assigned to the `Prototype Bootstrapper` object in `Assets/Scenes/SampleScene.unity`; each map tile directly references its building asset. Core rules do not consume ScriptableObjects directly. `BuildingConfig.ToDefinition()` produces a pure `BuildingDefinition` with:
 
 - A building name.
 - A `BuildingTriggerMode`.
@@ -120,6 +123,8 @@ Current building effect types are:
 - `ShowFeedback`
 
 `BuildingRuleResolver.Resolve(...)` takes a pure `BuildingDefinition` and a `MoveEventTiming`, then returns ordered `BuildingEffectCommand` values. These commands describe what should happen; they do not apply UI, animation, player state, or MonoBehaviour listener side effects by themselves.
+
+`BuildingEffectAsset.ToCommand()` is an authoring-layer convenience for translating one effect asset into the same pure command used by the resolver. SO Event extensions are intentionally outside the current scope and will be designed in a separate session.
 
 At Play time, `PrototypeBootstrapper` reads each ordered tile from `PrototypeMapData` and assigns its serialized `BuildingConfig` to `BoardTile`. `BoardTile.ToDefinition()` converts the asset to a pure `BuildingDefinition`, which is carried by `BoardMoveResolver.TileDefinition`. When movement reaches a tile, `BoardMoveResolver` resolves the building for the pass or stop timing and includes any resulting commands on the emitted `MoveEvent`.
 
@@ -148,6 +153,8 @@ The current rule tests cover:
 - Building trigger matching for pass, stop, and pass-or-stop timing.
 - Ordered building effect command output for money, teleport, confirmation, and feedback effects.
 - ScriptableObject building configs converting into pure building definitions.
+- Building effect assets translating into pure definitions and commands.
+- Building config validation rejecting more than one confirmation effect.
 - Prototype building asset tests covering all 13 individual building assets, effect ordering, money payloads, and teleport targets.
 - Board tiles converting map-provided building configs into pure definitions.
 

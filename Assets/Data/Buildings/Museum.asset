@@ -15,7 +15,4 @@ MonoBehaviour:
   buildingName: Museum
   triggerMode: 1
   effects:
-  - effectType: 3
-    moneyAmount: 0
-    targetTileIndex: 0
-    message: 'Museum visit: confirm the exhibit action.'
+  - {fileID: 11400000, guid: a100000000000000000000000000000d, type: 2}

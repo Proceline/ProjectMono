@@ -15,7 +15,4 @@ MonoBehaviour:
   buildingName: Start
   triggerMode: 1
   effects:
-  - effectType: 4
-    moneyAmount: 0
-    targetTileIndex: 0
-    message: 'Stopped at Start.'
+  - {fileID: 11400000, guid: a1000000000000000000000000000001, type: 2}

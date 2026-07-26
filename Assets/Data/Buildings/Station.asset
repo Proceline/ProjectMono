@@ -15,7 +15,4 @@ MonoBehaviour:
   buildingName: Station
   triggerMode: 2
   effects:
-  - effectType: 3
-    moneyAmount: 0
-    targetTileIndex: 0
-    message: 'Station crossing: confirm the train signal.'
+  - {fileID: 11400000, guid: a100000000000000000000000000000a, type: 2}

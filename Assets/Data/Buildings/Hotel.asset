@@ -15,7 +15,4 @@ MonoBehaviour:
   buildingName: Hotel
   triggerMode: 2
   effects:
-  - effectType: 4
-    moneyAmount: 0
-    targetTileIndex: 0
-    message: 'Passed Hotel: lobby feedback.'
+  - {fileID: 11400000, guid: a100000000000000000000000000000e, type: 2}

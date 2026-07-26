@@ -15,7 +15,4 @@ MonoBehaviour:
   buildingName: Library
   triggerMode: 2
   effects:
-  - effectType: 4
-    moneyAmount: 0
-    targetTileIndex: 0
-    message: 'Passed Library: quiet auto feedback.'
+  - {fileID: 11400000, guid: a100000000000000000000000000000c, type: 2}

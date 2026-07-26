@@ -69,10 +69,12 @@ public class PrototypeMapDataTests
     [Test]
     public void ToTileDefinitions_PreservesMapOrderAndBuildingData()
     {
+        var subtractMoney = ScriptableObject.CreateInstance<SubtractMoneyEffectAsset>();
+        subtractMoney.Configure(40);
         var config = ScriptableObject.CreateInstance<BuildingConfig>();
-        config.Configure("Shop", BuildingTriggerMode.Stop, new[]
+        config.Configure("Shop", BuildingTriggerMode.Stop, new BuildingEffectAsset[]
         {
-            BuildingEffectConfig.SubtractMoney(40),
+            subtractMoney,
         });
 
         var map = ScriptableObject.CreateInstance<PrototypeMapData>();
@@ -92,6 +94,10 @@ public class PrototypeMapDataTests
         Assert.IsNotNull(definitions[1].Building);
         Assert.AreEqual(BuildingEffectType.SubtractMoney, definitions[1].Building.Effects[0].EffectType);
         Assert.IsNull(definitions[0].Building);
+
+        Object.DestroyImmediate(map);
+        Object.DestroyImmediate(config);
+        Object.DestroyImmediate(subtractMoney);
     }
 
     [Test]

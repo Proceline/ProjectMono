@@ -15,7 +15,4 @@ MonoBehaviour:
   buildingName: Clinic
   triggerMode: 2
   effects:
-  - effectType: 4
-    moneyAmount: 0
-    targetTileIndex: 0
-    message: 'Passed Clinic: auto health feedback.'
+  - {fileID: 11400000, guid: a1000000000000000000000000000010, type: 2}

@@ -15,15 +15,6 @@ MonoBehaviour:
   buildingName: Shop
   triggerMode: 1
   effects:
-  - effectType: 3
-    moneyAmount: 0
-    targetTileIndex: 0
-    message: 'Shop visit: confirm the stop action.'
-  - effectType: 1
-    moneyAmount: 40
-    targetTileIndex: 0
-    message:
-  - effectType: 4
-    moneyAmount: 0
-    targetTileIndex: 0
-    message: 'Shop fee: -40 money.'
+  - {fileID: 11400000, guid: a1000000000000000000000000000007, type: 2}
+  - {fileID: 11400000, guid: a1000000000000000000000000000008, type: 2}
+  - {fileID: 11400000, guid: a1000000000000000000000000000009, type: 2}

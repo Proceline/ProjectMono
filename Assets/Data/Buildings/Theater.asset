@@ -15,7 +15,4 @@ MonoBehaviour:
   buildingName: Theater
   triggerMode: 1
   effects:
-  - effectType: 3
-    moneyAmount: 0
-    targetTileIndex: 0
-    message: 'Theater visit: confirm the show action.'
+  - {fileID: 11400000, guid: a1000000000000000000000000000011, type: 2}

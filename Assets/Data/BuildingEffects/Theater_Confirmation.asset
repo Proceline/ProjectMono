@@ -9,10 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: be30712b95734ad2819db0223d6e9d7f, type: 3}
-  m_Name: Park
-  m_EditorClassIdentifier:
-  buildingName: Park
-  triggerMode: 1
-  effects:
-  - {fileID: 11400000, guid: a100000000000000000000000000000b, type: 2}
+  m_Script: {fileID: 11500000, guid: 5b8d2e3f4a6c7190b2d5e8f1a3c7e946, type: 3}
+  m_Name: Theater_Confirmation
+  m_EditorClassIdentifier: MonopolyPrototype::MonopolyPrototype.RequestConfirmationEffectAsset
+  message: 'Theater visit: confirm the show action.'

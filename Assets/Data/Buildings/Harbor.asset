@@ -15,11 +15,5 @@ MonoBehaviour:
   buildingName: Harbor
   triggerMode: 2
   effects:
-  - effectType: 3
-    moneyAmount: 0
-    targetTileIndex: 0
-    message: 'Harbor crossing: confirm ship traffic.'
-  - effectType: 2
-    moneyAmount: 0
-    targetTileIndex: 0
-    message:
+  - {fileID: 11400000, guid: a1000000000000000000000000000012, type: 2}
+  - {fileID: 11400000, guid: a1000000000000000000000000000013, type: 2}

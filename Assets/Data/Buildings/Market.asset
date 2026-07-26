@@ -15,7 +15,4 @@ MonoBehaviour:
   buildingName: Market
   triggerMode: 1
   effects:
-  - effectType: 4
-    moneyAmount: 0
-    targetTileIndex: 0
-    message: 'Stopped at Market.'
+  - {fileID: 11400000, guid: a100000000000000000000000000000f, type: 2}

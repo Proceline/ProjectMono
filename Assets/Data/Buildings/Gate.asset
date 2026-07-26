@@ -15,11 +15,5 @@ MonoBehaviour:
   buildingName: Gate
   triggerMode: 2
   effects:
-  - effectType: 3
-    moneyAmount: 0
-    targetTileIndex: 0
-    message: 'Gate checkpoint: confirm before moving on.'
-  - effectType: 4
-    moneyAmount: 0
-    targetTileIndex: 0
-    message: Gate checkpoint cleared.
+  - {fileID: 11400000, guid: a1000000000000000000000000000005, type: 2}
+  - {fileID: 11400000, guid: a1000000000000000000000000000006, type: 2}
