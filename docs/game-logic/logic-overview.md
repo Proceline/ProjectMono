@@ -59,6 +59,7 @@ The prototype is intentionally narrow:
 - `Assets/Editor/MonopolyPrototype/PrototypeMapPainterWindow.cs`
   - Editor-only map authoring tool.
   - Draws an N x N placeholder grid in the Scene view and stores only map data; it does not create runtime visual objects.
+  - Clicking an existing cell with a selected building replaces that cell while preserving path order. `Erase` removes the selected cell, while `Blank` remains a valid tile type.
 
 ## Building-backed Tile Behavior
 

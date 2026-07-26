@@ -16,6 +16,7 @@ namespace MonopolyPrototype.EditorTools
         [SerializeField] private int mapSize = 6;
         [SerializeField] private PrototypeMapData loadedMap;
         [SerializeField] private BuildingConfig selectedBuilding;
+        [SerializeField] private bool eraseMode;
         [SerializeField] private Vector2 paletteScroll;
 
         [SerializeField] private List<PrototypeMapTileData> path = new List<PrototypeMapTileData>();
@@ -130,6 +131,7 @@ namespace MonopolyPrototype.EditorTools
             using (new EditorGUILayout.HorizontalScope())
             {
                 DrawPaletteButton("Blank", null);
+                DrawEraseButton();
                 for (var i = 0; i < palette.Count; i++)
                 {
                     DrawPaletteButton(palette[i].BuildingName, palette[i]);
@@ -138,20 +140,41 @@ namespace MonopolyPrototype.EditorTools
 
             EditorGUILayout.EndScrollView();
             EditorGUILayout.LabelField(
-                selectedBuilding == null ? "Selected: Blank" : $"Selected: {selectedBuilding.BuildingName}");
+                eraseMode
+                    ? "Selected: Erase"
+                    : selectedBuilding == null
+                        ? "Selected: Blank"
+                        : $"Selected: {selectedBuilding.BuildingName}");
         }
 
         private void DrawPaletteButton(string label, BuildingConfig building)
         {
             var previousColor = GUI.backgroundColor;
-            if (selectedBuilding == building)
+            if (!eraseMode && selectedBuilding == building)
             {
                 GUI.backgroundColor = new Color(0.95f, 0.78f, 0.22f);
             }
 
             if (GUILayout.Button(label, GUILayout.Width(92f), GUILayout.Height(36f)))
             {
-                selectedBuilding = building;
+                SelectBuilding(building);
+            }
+
+            GUI.backgroundColor = previousColor;
+        }
+
+        private void DrawEraseButton()
+        {
+            var previousColor = GUI.backgroundColor;
+            if (eraseMode)
+            {
+                GUI.backgroundColor = new Color(0.95f, 0.45f, 0.35f);
+            }
+
+            if (GUILayout.Button("Erase", GUILayout.Width(92f), GUILayout.Height(36f)))
+            {
+                eraseMode = true;
+                selectedBuilding = null;
             }
 
             GUI.backgroundColor = previousColor;
@@ -244,19 +267,33 @@ namespace MonopolyPrototype.EditorTools
 
         private void TryAddTile(Vector2Int position)
         {
-            if (FindTileIndex(position) >= 0)
+            var tileIndex = FindTileIndex(position);
+            if (tileIndex >= 0)
             {
-                if (path.Count >= 4 && position == path[0].GridPosition && IsAdjacent(path[path.Count - 1].GridPosition, position))
+                if (eraseMode)
                 {
-                    status = "Loop closed. Validate or save the MapData asset.";
+                    var removedTileName = path[tileIndex].TileName;
+                    path.RemoveAt(tileIndex);
+                    status = $"Erased {removedTileName} at ({position.x}, {position.y}).";
                     statusType = MessageType.Info;
                 }
                 else
                 {
-                    status = "That cell is already in the path.";
-                    statusType = MessageType.Warning;
+                    var replacementTileName = selectedBuilding == null ? "Blank" : selectedBuilding.BuildingName;
+                    path[tileIndex] = new PrototypeMapTileData(position, replacementTileName, selectedBuilding);
+                    status = $"Replaced tile {tileIndex + 1} with {replacementTileName}.";
+                    statusType = MessageType.Info;
                 }
 
+                Repaint();
+                SceneView.RepaintAll();
+                return;
+            }
+
+            if (eraseMode)
+            {
+                status = "Erase mode only removes existing cells.";
+                statusType = MessageType.Warning;
                 Repaint();
                 return;
             }
@@ -311,6 +348,7 @@ namespace MonopolyPrototype.EditorTools
             path.Clear();
             path.AddRange(map.Tiles);
             pathInitialized = true;
+            eraseMode = false;
             status = $"Loaded {map.name}.";
             statusType = MessageType.Info;
             Repaint();
@@ -386,7 +424,13 @@ namespace MonopolyPrototype.EditorTools
 
         private void SelectBuildingByName(string name)
         {
-            selectedBuilding = palette.FirstOrDefault(config => config.BuildingName == name);
+            SelectBuilding(palette.FirstOrDefault(config => config.BuildingName == name));
+        }
+
+        private void SelectBuilding(BuildingConfig building)
+        {
+            eraseMode = false;
+            selectedBuilding = building;
         }
 
         private int FindTileIndex(Vector2Int position)
