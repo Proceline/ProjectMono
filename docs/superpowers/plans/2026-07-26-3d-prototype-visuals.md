@@ -4,7 +4,7 @@
 
 **Goal:** Replace the runtime-generated 2D placeholder board with a simple playable desktop 3D presentation made from Unity built-in primitive meshes while preserving the existing map, rule, effect, and controller contracts.
 
-**Architecture:** Keep `PrototypeMapData`, `BuildingConfig`, pure rule resolution, `BuildingEventBridge`, and `BoardController` unchanged at the gameplay boundary. Add a presentation-only style mapping plus a `Prototype3DBoardView` that creates a board platform, tile bases, building markers, and labels as children of each existing `BoardTile`; update only camera setup and token motion in the bootstrapper/presentation layer.
+**Architecture:** Keep `PrototypeMapData`, `BuildingConfig`, pure rule resolution, `BuildingEventBridge`, and `BoardController` unchanged at the gameplay boundary. Add a presentation-only style mapping, a replaceable `PrototypeBoardTile` prefab, and a `Prototype3DBoardView` that instantiates the prefab in map order beneath each logical `BoardTile`; update only camera setup and token motion in the bootstrapper/presentation layer.
 
 **Tech Stack:** Unity 6000.3.9f1, URP, built-in `PrimitiveType` meshes, `Renderer.material.color`, legacy `TextMesh`/uGUI already present in the project, NUnit EditMode tests.
 
@@ -15,7 +15,7 @@
 - Do not add `BuildingVisualProfile`, mobile layouts, Money state, or Teleport state semantics in this unit.
 - Do not add SOEvent dependencies to pure rule or building-command types.
 - `PrototypeMapData` remains the source of truth for grid coordinates and route order.
-- Visual objects must remain replaceable by keeping them below the `BoardTile` logical root and isolating construction in a presentation view.
+- Visual objects must remain replaceable by keeping them below the `BoardTile` logical root, using a prefab asset, and isolating construction in a presentation view.
 - Do not edit Unity-generated `Library`, `Temp`, `Logs`, `UserSettings`, `obj`, `.csproj`, or `.sln` files.
 
 ---
@@ -44,17 +44,22 @@
 **Files:**
 - Create: `Assets/Scripts/MonopolyPrototype/Prototype3DBoardView.cs`
 - Create: `Assets/Scripts/MonopolyPrototype/Prototype3DBoardView.cs.meta`
+- Create: `Assets/Scripts/MonopolyPrototype/PrototypeBoardTileView.cs`
+- Create: `Assets/Scripts/MonopolyPrototype/PrototypeBoardTileView.cs.meta`
+- Create: `Assets/Prefabs/PrototypeBoardTile.prefab`
+- Create: `Assets/Prefabs/PrototypeBoardTile.prefab.meta`
 
 **Interfaces:**
-- `Prototype3DBoardView.Build(PrototypeMapData mapData, Vector2 boardCenter, Vector2 tileSpacing, float tileScale)` returns the ordered `IReadOnlyList<BoardTile>` consumed by the existing controller.
-- Each returned `BoardTile` remains the root object at the map position; generated 3D platform, tile surface, building marker, and label objects are children only.
+- `Prototype3DBoardView.Build(PrototypeMapData mapData, Vector2 boardCenter, Vector2 tileSpacing, float tileScale, PrototypeBoardTileView tilePrefab)` returns the ordered `IReadOnlyList<BoardTile>` consumed by the existing controller.
+- Each returned `BoardTile` is the root of one instantiated `PrototypeBoardTile` prefab at the map position; the platform remains a separate presentation object.
 - The view validates the map before creating route objects and logs validation errors at the presentation boundary.
 
 - [x] Create the board platform as a cube using map bounds from `PrototypeMapLayout`.
-- [x] Create each tile surface as a child cube positioned from the existing grid layout, preserving map path order and `BoardTile.Configure(...)` data.
+- [x] Create `PrototypeBoardTile.prefab` from a root `BoardTile` plus `PrototypeBoardTileView`, a built-in Cube tile surface, marker anchor, and world-space label.
+- [x] Instantiate one tile prefab per map route item, position it from the existing grid layout, and preserve map path order and `BoardTile.Configure(...)` data.
 - [x] Create deterministic built-in primitive markers from `Prototype3DVisualStyle`, with no ScriptableObject visual references.
 - [x] Add readable world-space `TextMesh` labels without changing the pure definition or controller route.
-- [x] Keep all visual construction inside this component so a future prefab/profile view can replace it without changing rule code.
+- [x] Keep prefab configuration and all runtime marker construction inside presentation components so a future art prefab can replace it without changing rule code.
 - [x] Run the focused style tests and the existing core EditMode tests after the new view compiles.
 - [x] Commit with `feat: add replaceable primitive 3d board view`.
 
@@ -70,8 +75,8 @@
 
 - [x] Replace the 2D sprite tile construction call path with `Prototype3DBoardView.Build(...)`.
 - [x] Preserve the existing runtime UI creation and roll/confirmation wiring.
-- [x] Configure the camera to use a perspective view, a stable elevated diagonal direction, `cameraFieldOfView`, and a board-size-based distance with padding.
-- [x] Keep the existing scene camera and Directional Light compatible; do not require scene asset edits for runtime board generation.
+- [x] Configure the camera to use a perspective view, a near-top-down direction with a small tilt, `cameraFieldOfView`, and a board-size-based distance with padding.
+- [x] Assign the tile prefab in `SampleScene` while keeping the existing scene camera and Directional Light compatible.
 - [x] Run a script compile check and the focused EditMode tests.
 - [x] Commit with `feat: wire prototype bootstrapper to 3d presentation`.
 
@@ -101,7 +106,7 @@
 
 - [x] Run the complete available EditMode/core test suite.
 - [x] Run a Unity batchmode compile or project script compile check; if Unity is blocked by an open Editor, record the exact limitation and use the available fallback.
-- [ ] Verify the final diff contains no changes to pure resolver, building effect, SOEvent, or map data behavior.
-- [ ] Inspect branch status and the generated asset/script metadata for all new files.
-- [ ] Commit the verified implementation with `feat: add playable 3d prototype presentation` if an integration commit remains.
-- [ ] Report the exact verification evidence, changed files, branch name, and any Unity Editor limitation.
+- [x] Verify the final diff contains no changes to pure resolver, building effect, SOEvent, or map data behavior.
+- [x] Inspect branch status and the generated asset/script metadata for all new files.
+- [x] Commit the verified implementation with `feat: instantiate 3d board tiles from prefabs`.
+- [x] Report the exact verification evidence, changed files, branch name, and any Unity Editor limitation.

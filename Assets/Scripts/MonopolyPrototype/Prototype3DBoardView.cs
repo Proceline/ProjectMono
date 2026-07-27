@@ -1,4 +1,7 @@
 using System.Collections.Generic;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 using UnityEngine;
 
 namespace MonopolyPrototype
@@ -6,9 +9,8 @@ namespace MonopolyPrototype
     public sealed class Prototype3DBoardView : MonoBehaviour
     {
         private const float BoardPlatformHeight = 0.35f;
-        private const float TileSurfaceHeight = 0.3f;
-        private const float TileSurfaceCenterHeight = 0.15f;
-        private const float MarkerGap = 0.03f;
+
+        [SerializeField] private PrototypeBoardTileView tilePrefab;
 
         private Transform boardRoot;
 
@@ -17,6 +19,16 @@ namespace MonopolyPrototype
             Vector2 boardCenter,
             Vector2 tileSpacing,
             float tileScale)
+        {
+            return Build(mapData, boardCenter, tileSpacing, tileScale, tilePrefab);
+        }
+
+        public IReadOnlyList<BoardTile> Build(
+            PrototypeMapData mapData,
+            Vector2 boardCenter,
+            Vector2 tileSpacing,
+            float tileScale,
+            PrototypeBoardTileView tileVisualPrefab)
         {
             if (mapData == null)
             {
@@ -27,6 +39,13 @@ namespace MonopolyPrototype
             if (!mapData.TryValidateClosedLoop(out var error))
             {
                 Debug.LogError($"Prototype map data is invalid: {error}");
+                return new List<BoardTile>();
+            }
+
+            var prefab = tileVisualPrefab != null ? tileVisualPrefab : tilePrefab;
+            if (prefab == null)
+            {
+                Debug.LogError("Prototype 3D Board View needs a PrototypeBoardTileView prefab.");
                 return new List<BoardTile>();
             }
 
@@ -53,8 +72,8 @@ namespace MonopolyPrototype
             {
                 var mapTile = mapData.Tiles[i];
                 var definition = mapTile.ToDefinition();
-                var tileObject = new GameObject($"Tile - {definition.Name}");
-                tileObject.transform.SetParent(boardRoot, false);
+                var tileView = InstantiateTile(prefab, boardRoot);
+                var tileObject = tileView.gameObject;
 
                 var position = PrototypeMapLayout.GetWorldPosition(
                     mapTile.GridPosition,
@@ -63,68 +82,36 @@ namespace MonopolyPrototype
                     tileSpacing);
                 tileObject.transform.position = new Vector3(position.x, 0f, position.y);
 
-                var tile = tileObject.AddComponent<BoardTile>();
-                tile.Configure(definition.Name, mapTile.BuildingConfig);
-                tiles.Add(tile);
-
-                var style = Prototype3DVisualStyle.For(definition.Building);
-                CreatePrimitive(
-                    PrimitiveType.Cube,
-                    "Tile Surface",
-                    tileObject.transform,
-                    new Vector3(0f, TileSurfaceCenterHeight, 0f),
-                    new Vector3(safeTileScale, TileSurfaceHeight, safeTileScale),
-                    style.TileColor);
-
-                if (style.HasMarker)
+                var tile = tileObject.GetComponent<BoardTile>();
+                if (tile == null)
                 {
-                    CreateBuildingMarker(tileObject.transform, style);
+                    tile = tileObject.AddComponent<BoardTile>();
                 }
-
-                CreateTileLabel(tileObject.transform, definition.Name, safeTileScale);
+                tile.Configure(definition.Name, mapTile.BuildingConfig);
+                tileView.Configure(definition.Building, definition.Name, safeTileScale);
+                tiles.Add(tile);
             }
 
             return tiles;
         }
 
-        private static void CreateBuildingMarker(
-            Transform parent,
-            Prototype3DVisualStyle style)
+        private static PrototypeBoardTileView InstantiateTile(
+            PrototypeBoardTileView prefab,
+            Transform parent)
         {
-            var markerHeight = GetPrimitiveHeight(style.MarkerPrimitive) * style.MarkerScale.y;
-            CreatePrimitive(
-                style.MarkerPrimitive,
-                "Building Marker",
-                parent,
-                new Vector3(
-                    0f,
-                    TileSurfaceHeight + MarkerGap + markerHeight * 0.5f,
-                    0f),
-                style.MarkerScale,
-                style.MarkerColor);
-        }
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+            {
+                var editorInstance = PrefabUtility.InstantiatePrefab(prefab, parent)
+                    as PrototypeBoardTileView;
+                if (editorInstance != null)
+                {
+                    return editorInstance;
+                }
+            }
+#endif
 
-        private static void CreateTileLabel(
-            Transform parent,
-            string label,
-            float tileScale)
-        {
-            var labelObject = new GameObject("3D Label");
-            labelObject.transform.SetParent(parent, false);
-            labelObject.transform.localPosition = new Vector3(
-                0f,
-                TileSurfaceHeight + 0.02f,
-                -Mathf.Max(0.32f, tileScale * 0.3f));
-            labelObject.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-
-            var textMesh = labelObject.AddComponent<TextMesh>();
-            textMesh.text = label;
-            textMesh.fontSize = 32;
-            textMesh.characterSize = 0.07f;
-            textMesh.anchor = TextAnchor.MiddleCenter;
-            textMesh.alignment = TextAlignment.Center;
-            textMesh.fontStyle = FontStyle.Bold;
-            textMesh.color = new Color(0.08f, 0.1f, 0.12f);
+            return Instantiate(prefab, parent);
         }
 
         private static GameObject CreatePrimitive(
@@ -154,14 +141,6 @@ namespace MonopolyPrototype
             }
 
             return primitive;
-        }
-
-        private static float GetPrimitiveHeight(PrimitiveType primitiveType)
-        {
-            return primitiveType == PrimitiveType.Cylinder
-                || primitiveType == PrimitiveType.Capsule
-                ? 2f
-                : 1f;
         }
     }
 }

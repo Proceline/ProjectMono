@@ -21,7 +21,10 @@ public class Prototype3DScenePlayModeTests
 
         var boardView = Object.FindFirstObjectByType<Prototype3DBoardView>();
         Assert.IsNotNull(boardView);
+        Assert.IsNotNull(Object.FindFirstObjectByType<PrototypeBoardTileView>());
         Assert.IsNotNull(GameObject.Find("Board Platform"));
+
+        Assert.Greater(Vector3.Dot(camera.transform.forward, Vector3.down), 0.95f);
 
         var renderers = Object.FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None);
         Assert.GreaterOrEqual(renderers.Length, 20);
@@ -29,6 +32,7 @@ public class Prototype3DScenePlayModeTests
         var token = Object.FindFirstObjectByType<PlayerToken>();
         Assert.IsNotNull(token);
         Assert.Greater(token.transform.position.y, 0.5f);
+        Assert.IsNotNull(token.GetComponent<CapsuleCollider>());
 
         var rollButtonObject = GameObject.Find("Roll Button");
         Assert.IsNotNull(rollButtonObject);

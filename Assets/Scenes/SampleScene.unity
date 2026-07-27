@@ -164,7 +164,15 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier:
   mapData: {fileID: 11400000, guid: 1c026117227938a4a8d0985d1aa75e57, type: 2}
+  boardView: {fileID: 0}
+  tilePrefab: {fileID: 7363636411883045033, guid: f0d9828b1ac0ce24f8060c1aa2649d8b, type: 3}
+  boardCenter: {x: 0, y: 0}
   tileSpacing: {x: 1.8, y: 1.7}
+  tileScale: 1.5
+  fitCameraToBoard: 1
+  cameraPadding: 0.8
+  cameraFieldOfView: 50
+  cameraDirection: {x: 0.05, y: 1, z: -0.08}
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0

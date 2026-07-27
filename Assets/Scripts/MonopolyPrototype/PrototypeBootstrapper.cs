@@ -10,13 +10,14 @@ namespace MonopolyPrototype
     {
         [SerializeField] private PrototypeMapData mapData;
         [SerializeField] private Prototype3DBoardView boardView;
+        [SerializeField] private PrototypeBoardTileView tilePrefab;
         [SerializeField] private Vector2 boardCenter = PrototypeMapLayout.DefaultCenter;
         [SerializeField] private Vector2 tileSpacing = PrototypeMapLayout.DefaultSpacing;
         [SerializeField, Min(0.1f)] private float tileScale = PrototypeMapLayout.DefaultTileScale;
         [SerializeField] private bool fitCameraToBoard = true;
         [SerializeField, Min(0f)] private float cameraPadding = 0.8f;
         [SerializeField, Range(25f, 80f)] private float cameraFieldOfView = 50f;
-        [SerializeField] private Vector3 cameraDirection = new Vector3(0.65f, 1f, -0.8f);
+        [SerializeField] private Vector3 cameraDirection = new Vector3(0.05f, 1f, -0.08f);
 
         private void Awake()
         {
@@ -100,7 +101,7 @@ namespace MonopolyPrototype
                 boardView = viewObject.AddComponent<Prototype3DBoardView>();
             }
 
-            return boardView.Build(mapData, boardCenter, tileSpacing, tileScale);
+            return boardView.Build(mapData, boardCenter, tileSpacing, tileScale, tilePrefab);
         }
 
         private static PlayerToken CreateToken()
