@@ -23,13 +23,13 @@ public class PrototypeBuildingAssetTests
             new[] { BuildingEffectType.ShowFeedback },
             new[] { "Stopped at Start." });
         AssertBuilding("Bank", BuildingTriggerMode.PassOrStop,
-            new[] { BuildingEffectType.ShowFeedback, BuildingEffectType.AddMoney, BuildingEffectType.ShowFeedback },
+            new[] { BuildingEffectType.ShowFeedback, BuildingEffectType.AdjustMoney, BuildingEffectType.ShowFeedback },
             new[] { "Passed Bank: auto bonus feedback.", string.Empty, "Bank bonus: +100 money." });
         AssertBuilding("Gate", BuildingTriggerMode.PassOrStop,
             new[] { BuildingEffectType.RequestConfirmation, BuildingEffectType.ShowFeedback },
             new[] { "Gate checkpoint: confirm before moving on.", "Gate checkpoint cleared." });
         AssertBuilding("Shop", BuildingTriggerMode.Stop,
-            new[] { BuildingEffectType.RequestConfirmation, BuildingEffectType.SubtractMoney, BuildingEffectType.ShowFeedback },
+            new[] { BuildingEffectType.RequestConfirmation, BuildingEffectType.AdjustMoney, BuildingEffectType.ShowFeedback },
             new[] { "Shop visit: confirm the stop action.", string.Empty, "Shop fee: -40 money." });
         AssertBuilding("Station", BuildingTriggerMode.PassOrStop,
             new[] { BuildingEffectType.RequestConfirmation },
@@ -82,8 +82,8 @@ public class PrototypeBuildingAssetTests
     [Test]
     public void BuildingAssets_PreserveMoneyAndTeleportPayloads()
     {
-        Assert.AreEqual(100, LoadBuilding("Bank").ToDefinition().Effects[1].MoneyAmount);
-        Assert.AreEqual(40, LoadBuilding("Shop").ToDefinition().Effects[1].MoneyAmount);
+        Assert.AreEqual(100, LoadBuilding("Bank").ToDefinition().Effects[1].MoneyDelta);
+        Assert.AreEqual(-40, LoadBuilding("Shop").ToDefinition().Effects[1].MoneyDelta);
         Assert.AreEqual(0, LoadBuilding("Harbor").ToDefinition().Effects[1].TargetTileIndex);
     }
 

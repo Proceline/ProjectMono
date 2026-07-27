@@ -12,7 +12,7 @@ public class BuildingRuleResolverTests
             BuildingTriggerMode.Pass,
             new[]
             {
-                BuildingEffectDefinition.AddMoney(100),
+                BuildingEffectDefinition.AdjustMoney(100),
             });
 
         var commands = BuildingRuleResolver.Resolve(building, MoveEventTiming.Stop);
@@ -28,15 +28,16 @@ public class BuildingRuleResolverTests
             BuildingTriggerMode.Stop,
             new[]
             {
-                BuildingEffectDefinition.SubtractMoney(40),
+                BuildingEffectDefinition.AdjustMoney(-40),
                 BuildingEffectDefinition.ShowFeedback("Paid shop fee."),
             });
 
         var commands = BuildingRuleResolver.Resolve(building, MoveEventTiming.Stop);
 
         Assert.AreEqual(2, commands.Count);
-        Assert.AreEqual(BuildingEffectType.SubtractMoney, commands[0].EffectType);
+        Assert.AreEqual(BuildingEffectType.AdjustMoney, commands[0].EffectType);
         Assert.AreEqual(-40, commands[0].MoneyDelta);
+        Assert.AreEqual(-1, commands[0].EffectIndex);
         Assert.AreEqual(BuildingEffectType.ShowFeedback, commands[1].EffectType);
         Assert.AreEqual("Paid shop fee.", commands[1].Message);
     }

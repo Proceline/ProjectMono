@@ -2,7 +2,8 @@
   "name": "MonopolyPrototype.SOEvents.EditModeTests",
   "rootNamespace": "MonopolyPrototype",
   "references": [
-    "MonopolyPrototype.SOEvents"
+    "MonopolyPrototype.SOEvents",
+    "MonopolyPrototype"
   ],
   "includePlatforms": [
     "Editor"

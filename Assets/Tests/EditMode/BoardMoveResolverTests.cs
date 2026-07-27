@@ -141,7 +141,7 @@ public class BoardMoveResolverTests
             BuildingTriggerMode.Pass,
             new[]
             {
-                BuildingEffectDefinition.AddMoney(100),
+                BuildingEffectDefinition.AdjustMoney(100),
                 BuildingEffectDefinition.ShowFeedback("Passed bank."),
             });
         var tiles = new List<BoardMoveResolver.TileDefinition>
@@ -157,7 +157,7 @@ public class BoardMoveResolverTests
         Assert.AreEqual(MoveEventTiming.Pass, result.Events[0].Timing);
         Assert.AreSame(bank, result.Events[0].Building);
         Assert.AreEqual(2, result.Events[0].BuildingCommands.Count);
-        Assert.AreEqual(BuildingEffectType.AddMoney, result.Events[0].BuildingCommands[0].EffectType);
+        Assert.AreEqual(BuildingEffectType.AdjustMoney, result.Events[0].BuildingCommands[0].EffectType);
         Assert.AreEqual(100, result.Events[0].BuildingCommands[0].MoneyDelta);
         Assert.AreEqual(BuildingEffectType.ShowFeedback, result.Events[0].BuildingCommands[1].EffectType);
         Assert.AreEqual("Passed bank.", result.Events[0].BuildingCommands[1].Message);

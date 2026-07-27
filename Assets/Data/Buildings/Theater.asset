@@ -16,3 +16,4 @@ MonoBehaviour:
   triggerMode: 1
   effects:
   - {fileID: 11400000, guid: a1000000000000000000000000000011, type: 2}
+  eventProfile: {fileID: 11400000, guid: bd1193b1036e8cb448a941a6c5621c4d, type: 2}

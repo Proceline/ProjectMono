@@ -2,6 +2,7 @@
     "name": "MonopolyPrototype",
     "rootNamespace": "MonopolyPrototype",
     "references": [
+        "MonopolyPrototype.SOEvents",
         "Unity.InputSystem"
     ],
     "includePlatforms": [],

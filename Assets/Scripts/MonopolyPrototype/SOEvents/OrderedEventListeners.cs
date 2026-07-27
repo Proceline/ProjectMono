@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace MonopolyPrototype
 {
-    internal sealed class OrderedEventListeners<TDelegate> where TDelegate : class
+    public sealed class OrderedEventListeners<TDelegate> where TDelegate : class
     {
         private readonly List<ListenerEntry> listeners = new List<ListenerEntry>();
         private long nextRegistrationSequence;
