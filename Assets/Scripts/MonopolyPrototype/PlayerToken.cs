@@ -6,7 +6,8 @@ namespace MonopolyPrototype
     public sealed class PlayerToken : MonoBehaviour
     {
         [SerializeField] private float moveDuration = 0.18f;
-        [SerializeField] private Vector3 tileOffset = new Vector3(0f, 0f, -0.1f);
+        [SerializeField] private float moveArcHeight = 0.28f;
+        [SerializeField] private Vector3 tileOffset = new Vector3(0f, 1.05f, 0f);
 
         public void SnapTo(BoardTile tile)
         {
@@ -23,7 +24,9 @@ namespace MonopolyPrototype
             {
                 elapsed += Time.deltaTime;
                 var t = Mathf.Clamp01(elapsed / moveDuration);
-                transform.position = Vector3.Lerp(start, end, t);
+                var position = Vector3.Lerp(start, end, t);
+                position.y += Mathf.Sin(t * Mathf.PI) * moveArcHeight;
+                transform.position = position;
                 yield return null;
             }
 
