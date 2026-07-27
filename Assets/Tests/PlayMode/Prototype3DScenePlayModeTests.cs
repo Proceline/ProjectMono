@@ -24,7 +24,9 @@ public class Prototype3DScenePlayModeTests
         Assert.IsNotNull(Object.FindFirstObjectByType<PrototypeBoardTileView>());
         Assert.IsNotNull(GameObject.Find("Board Platform"));
 
-        Assert.Greater(Vector3.Dot(camera.transform.forward, Vector3.down), 0.95f);
+        var cameraDownwardAlignment = Vector3.Dot(camera.transform.forward, Vector3.down);
+        Assert.Greater(cameraDownwardAlignment, 0.75f);
+        Assert.Less(cameraDownwardAlignment, 0.95f);
 
         var renderers = Object.FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None);
         Assert.GreaterOrEqual(renderers.Length, 20);

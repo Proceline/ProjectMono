@@ -17,7 +17,7 @@ namespace MonopolyPrototype
         [SerializeField] private bool fitCameraToBoard = true;
         [SerializeField, Min(0f)] private float cameraPadding = 0.8f;
         [SerializeField, Range(25f, 80f)] private float cameraFieldOfView = 50f;
-        [SerializeField] private Vector3 cameraDirection = new Vector3(0.05f, 1f, -0.08f);
+        [SerializeField] private Vector3 cameraDirection = new Vector3(0.35f, 1f, -0.5f);
 
         private void Awake()
         {
@@ -60,7 +60,7 @@ namespace MonopolyPrototype
                 + cameraPadding;
             var direction = cameraDirection.sqrMagnitude > 0.001f
                 ? cameraDirection.normalized
-                : new Vector3(0.65f, 1f, -0.8f).normalized;
+                : new Vector3(0.35f, 1f, -0.5f).normalized;
 
             camera.orthographic = false;
             camera.fieldOfView = safeFieldOfView;

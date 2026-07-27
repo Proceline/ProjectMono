@@ -75,7 +75,7 @@
 
 - [x] Replace the 2D sprite tile construction call path with `Prototype3DBoardView.Build(...)`.
 - [x] Preserve the existing runtime UI creation and roll/confirmation wiring.
-- [x] Configure the camera to use a perspective view, a near-top-down direction with a small tilt, `cameraFieldOfView`, and a board-size-based distance with padding.
+- [x] Configure the camera to use a perspective view, a moderate downward tilt, `cameraFieldOfView`, and a board-size-based distance with padding.
 - [x] Assign the tile prefab in `SampleScene` while keeping the existing scene camera and Directional Light compatible.
 - [x] Run a script compile check and the focused EditMode tests.
 - [x] Commit with `feat: wire prototype bootstrapper to 3d presentation`.
