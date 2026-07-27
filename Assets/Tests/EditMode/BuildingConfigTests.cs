@@ -7,8 +7,8 @@ public class BuildingConfigTests
     [Test]
     public void ToDefinition_ConvertsScriptableObjectAuthoringDataToPureBuildingDefinition()
     {
-        var addMoney = ScriptableObject.CreateInstance<AddMoneyEffectAsset>();
-        addMoney.Configure(80);
+        var adjustMoney = ScriptableObject.CreateInstance<AdjustMoneyEffectAsset>();
+        adjustMoney.Configure(80);
         var confirmation = ScriptableObject.CreateInstance<RequestConfirmationEffectAsset>();
         confirmation.Configure("Confirm clinic visit.");
         var feedback = ScriptableObject.CreateInstance<ShowFeedbackEffectAsset>();
@@ -19,7 +19,7 @@ public class BuildingConfigTests
             BuildingTriggerMode.PassOrStop,
             new BuildingEffectAsset[]
             {
-                addMoney,
+                adjustMoney,
                 confirmation,
                 feedback,
             });
@@ -29,15 +29,18 @@ public class BuildingConfigTests
         Assert.AreEqual("Clinic", definition.Name);
         Assert.AreEqual(BuildingTriggerMode.PassOrStop, definition.TriggerMode);
         Assert.AreEqual(3, definition.Effects.Count);
-        Assert.AreEqual(BuildingEffectType.AddMoney, definition.Effects[0].EffectType);
-        Assert.AreEqual(80, definition.Effects[0].MoneyAmount);
+        Assert.AreEqual(0, definition.Effects[0].EffectIndex);
+        Assert.AreEqual(BuildingEffectType.AdjustMoney, definition.Effects[0].EffectType);
+        Assert.AreEqual(80, definition.Effects[0].MoneyDelta);
+        Assert.AreEqual(1, definition.Effects[1].EffectIndex);
         Assert.AreEqual(BuildingEffectType.RequestConfirmation, definition.Effects[1].EffectType);
         Assert.AreEqual("Confirm clinic visit.", definition.Effects[1].Message);
+        Assert.AreEqual(2, definition.Effects[2].EffectIndex);
         Assert.AreEqual(BuildingEffectType.ShowFeedback, definition.Effects[2].EffectType);
         Assert.AreEqual("Clinic helped you recover.", definition.Effects[2].Message);
 
         Object.DestroyImmediate(config);
-        Object.DestroyImmediate(addMoney);
+        Object.DestroyImmediate(adjustMoney);
         Object.DestroyImmediate(confirmation);
         Object.DestroyImmediate(feedback);
     }

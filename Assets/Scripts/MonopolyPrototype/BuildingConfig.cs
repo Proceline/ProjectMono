@@ -9,9 +9,11 @@ namespace MonopolyPrototype
         [SerializeField] private string buildingName = "Building";
         [SerializeField] private BuildingTriggerMode triggerMode = BuildingTriggerMode.Stop;
         [SerializeField] private List<BuildingEffectAsset> effects = new List<BuildingEffectAsset>();
+        [SerializeField] private BuildingEventProfile eventProfile;
 
         public string BuildingName => buildingName;
         public IReadOnlyList<BuildingEffectAsset> Effects => effects;
+        public BuildingEventProfile EventProfile => eventProfile;
 
         public BuildingDefinition ToDefinition()
         {
@@ -25,7 +27,7 @@ namespace MonopolyPrototype
             {
                 if (effects[i] != null)
                 {
-                    definitions.Add(effects[i].ToDefinition());
+                    definitions.Add(effects[i].ToDefinition().WithEffectIndex(i));
                 }
             }
 

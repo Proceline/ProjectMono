@@ -116,6 +116,75 @@ namespace MonopolyPrototype
         }
 
         [Test]
+        public void BuildingEvent_RaisesTypedContextByOrderAndUnregisters()
+        {
+            var soEvent = ScriptableObject.CreateInstance<BuildingEventSOEvent>();
+            try
+            {
+                var calls = new List<string>();
+                UnityAction<BuildingEventContext> first = context => calls.Add($"first:{context.TileIndex}");
+                UnityAction<BuildingEventContext> second = context => calls.Add($"second:{context.BuildingName}");
+                var context = new BuildingEventContext(
+                    "Bank",
+                    4,
+                    MoveEventTiming.Stop,
+                    BuildingEventPhase.EffectCommandProduced,
+                    BuildingEffectType.AdjustMoney,
+                    100,
+                    0,
+                    string.Empty);
+
+                soEvent.Register(first, order: 10);
+                soEvent.Register(second, order: -5);
+                soEvent.Raise(context);
+
+                CollectionAssert.AreEqual(new[] { "second:Bank", "first:4" }, calls);
+                Assert.That(soEvent.Unregister(first), Is.True);
+                calls.Clear();
+                soEvent.Raise(context);
+
+                CollectionAssert.AreEqual(new[] { "second:Bank" }, calls);
+            }
+            finally
+            {
+                Object.DestroyImmediate(soEvent);
+            }
+        }
+
+        [Test]
+        public void MoneyChangeRequestedEvent_AllowsOrderedListenersToAdjustRequest()
+        {
+            var soEvent = ScriptableObject.CreateInstance<MoneyChangeRequestedSOEvent>();
+            try
+            {
+                MoneyChangeRequest observedRequest = null;
+                UnityAction<MoneyChangeRequest> modifier = request => request.AddToCurrentDelta(25);
+                UnityAction<MoneyChangeRequest> observer = request => observedRequest = request;
+                var request = new MoneyChangeRequest(
+                    "Bank",
+                    "Bank_AdjustMoney",
+                    BuildingEffectType.AdjustMoney,
+                    1,
+                    4,
+                    MoveEventTiming.Stop,
+                    0,
+                    100);
+
+                soEvent.Register(modifier, order: 0);
+                soEvent.Register(observer, order: 10);
+                soEvent.Raise(request);
+
+                Assert.That(observedRequest, Is.SameAs(request));
+                Assert.That(request.BaseDelta, Is.EqualTo(100));
+                Assert.That(request.CurrentDelta, Is.EqualTo(125));
+            }
+            finally
+            {
+                Object.DestroyImmediate(soEvent);
+            }
+        }
+
+        [Test]
         public void ClearRuntimeListeners_RemovesAllRegisteredCallbacks()
         {
             var soEvent = ScriptableObject.CreateInstance<VoidSOEvent>();

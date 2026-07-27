@@ -15,6 +15,7 @@ namespace MonopolyPrototype
         [SerializeField] private Button rollButton;
 
         private IDiceRoller diceRoller = new UnityRandomDiceRoller();
+        private BuildingEventBridge buildingEventBridge;
         private int currentIndex;
         private bool isMoving;
 
@@ -32,6 +33,8 @@ namespace MonopolyPrototype
             this.confirmationView = confirmationView;
             rollButton = button;
             diceRoller = roller ?? new UnityRandomDiceRoller();
+            buildingEventBridge = new BuildingEventBridge(
+                route.Select(tile => tile != null ? tile.BuildingConfig : null).ToList());
             WireButton();
             ResetToken();
         }
@@ -120,20 +123,28 @@ namespace MonopolyPrototype
 
         private IEnumerator HandleMoveEvent(BoardMoveResolver.MoveEvent moveEvent)
         {
-            if (moveEvent.BuildingCommands == null)
+            if (moveEvent.Building == null || moveEvent.BuildingCommands == null || moveEvent.BuildingCommands.Count == 0)
             {
                 yield break;
             }
 
+            buildingEventBridge?.RaiseBuildingTriggered(moveEvent);
+
             for (var i = 0; i < moveEvent.BuildingCommands.Count; i++)
             {
                 var command = moveEvent.BuildingCommands[i];
+                buildingEventBridge?.RaiseEffectCommandProduced(moveEvent, command);
+                var moneyChangeRequest = buildingEventBridge?.RaiseMoneyChangeRequested(moveEvent, command);
                 switch (command.EffectType)
                 {
-                    case BuildingEffectType.AddMoney:
-                    case BuildingEffectType.SubtractMoney:
-                        logView?.AddLine($"Money change: {command.MoneyDelta:+#;-#;0}.");
+                    case BuildingEffectType.AdjustMoney:
+                    {
+                        var moneyDelta = moneyChangeRequest != null
+                            ? moneyChangeRequest.CurrentDelta
+                            : command.MoneyDelta;
+                        logView?.AddLine($"Money change: {moneyDelta:+#;-#;0}.");
                         break;
+                    }
                     case BuildingEffectType.Teleport:
                         logView?.AddLine($"Teleport requested to tile {command.TargetTileIndex}.");
                         break;
@@ -152,6 +163,7 @@ namespace MonopolyPrototype
                         if (confirmationView != null)
                         {
                             yield return confirmationView.WaitForConfirmation(message);
+                            buildingEventBridge?.RaiseConfirmationCompleted(moveEvent, command);
                         }
 
                         break;

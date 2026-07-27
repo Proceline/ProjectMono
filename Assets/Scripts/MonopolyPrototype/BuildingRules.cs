@@ -11,8 +11,7 @@ namespace MonopolyPrototype
 
     public enum BuildingEffectType
     {
-        AddMoney,
-        SubtractMoney,
+        AdjustMoney,
         Teleport,
         RequestConfirmation,
         ShowFeedback
@@ -34,59 +33,78 @@ namespace MonopolyPrototype
 
     public readonly struct BuildingEffectDefinition
     {
-        private BuildingEffectDefinition(BuildingEffectType effectType, int moneyAmount, int targetTileIndex, string message)
-        {
-            EffectType = effectType;
-            MoneyAmount = moneyAmount;
-            TargetTileIndex = targetTileIndex;
-            Message = message ?? string.Empty;
-        }
-
-        public BuildingEffectType EffectType { get; }
-        public int MoneyAmount { get; }
-        public int TargetTileIndex { get; }
-        public string Message { get; }
-
-        public static BuildingEffectDefinition AddMoney(int amount)
-        {
-            return new BuildingEffectDefinition(BuildingEffectType.AddMoney, amount, 0, string.Empty);
-        }
-
-        public static BuildingEffectDefinition SubtractMoney(int amount)
-        {
-            return new BuildingEffectDefinition(BuildingEffectType.SubtractMoney, amount, 0, string.Empty);
-        }
-
-        public static BuildingEffectDefinition TeleportTo(int targetTileIndex)
-        {
-            return new BuildingEffectDefinition(BuildingEffectType.Teleport, 0, targetTileIndex, string.Empty);
-        }
-
-        public static BuildingEffectDefinition RequestConfirmation(string message)
-        {
-            return new BuildingEffectDefinition(BuildingEffectType.RequestConfirmation, 0, 0, message);
-        }
-
-        public static BuildingEffectDefinition ShowFeedback(string message)
-        {
-            return new BuildingEffectDefinition(BuildingEffectType.ShowFeedback, 0, 0, message);
-        }
-    }
-
-    public readonly struct BuildingEffectCommand
-    {
-        public BuildingEffectCommand(BuildingEffectType effectType, int moneyDelta, int targetTileIndex, string message)
+        private BuildingEffectDefinition(
+            BuildingEffectType effectType,
+            int moneyDelta,
+            int targetTileIndex,
+            string message,
+            int effectIndex)
         {
             EffectType = effectType;
             MoneyDelta = moneyDelta;
             TargetTileIndex = targetTileIndex;
             Message = message ?? string.Empty;
+            EffectIndex = effectIndex;
         }
 
         public BuildingEffectType EffectType { get; }
         public int MoneyDelta { get; }
         public int TargetTileIndex { get; }
         public string Message { get; }
+        public int EffectIndex { get; }
+
+        public BuildingEffectDefinition WithEffectIndex(int effectIndex)
+        {
+            return new BuildingEffectDefinition(
+                EffectType,
+                MoneyDelta,
+                TargetTileIndex,
+                Message,
+                effectIndex);
+        }
+
+        public static BuildingEffectDefinition AdjustMoney(int delta)
+        {
+            return new BuildingEffectDefinition(BuildingEffectType.AdjustMoney, delta, 0, string.Empty, -1);
+        }
+
+        public static BuildingEffectDefinition TeleportTo(int targetTileIndex)
+        {
+            return new BuildingEffectDefinition(BuildingEffectType.Teleport, 0, targetTileIndex, string.Empty, -1);
+        }
+
+        public static BuildingEffectDefinition RequestConfirmation(string message)
+        {
+            return new BuildingEffectDefinition(BuildingEffectType.RequestConfirmation, 0, 0, message, -1);
+        }
+
+        public static BuildingEffectDefinition ShowFeedback(string message)
+        {
+            return new BuildingEffectDefinition(BuildingEffectType.ShowFeedback, 0, 0, message, -1);
+        }
+    }
+
+    public readonly struct BuildingEffectCommand
+    {
+        public BuildingEffectCommand(
+            BuildingEffectType effectType,
+            int moneyDelta,
+            int targetTileIndex,
+            string message,
+            int effectIndex = -1)
+        {
+            EffectType = effectType;
+            MoneyDelta = moneyDelta;
+            TargetTileIndex = targetTileIndex;
+            Message = message ?? string.Empty;
+            EffectIndex = effectIndex;
+        }
+
+        public BuildingEffectType EffectType { get; }
+        public int MoneyDelta { get; }
+        public int TargetTileIndex { get; }
+        public string Message { get; }
+        public int EffectIndex { get; }
         public bool RequiresConfirmation => EffectType == BuildingEffectType.RequestConfirmation;
     }
 
@@ -119,17 +137,35 @@ namespace MonopolyPrototype
         {
             switch (effect.EffectType)
             {
-                case BuildingEffectType.AddMoney:
-                    return new BuildingEffectCommand(effect.EffectType, effect.MoneyAmount, 0, string.Empty);
-                case BuildingEffectType.SubtractMoney:
-                    return new BuildingEffectCommand(effect.EffectType, -effect.MoneyAmount, 0, string.Empty);
+                case BuildingEffectType.AdjustMoney:
+                    return new BuildingEffectCommand(
+                        effect.EffectType,
+                        effect.MoneyDelta,
+                        0,
+                        string.Empty,
+                        effect.EffectIndex);
                 case BuildingEffectType.Teleport:
-                    return new BuildingEffectCommand(effect.EffectType, 0, effect.TargetTileIndex, string.Empty);
+                    return new BuildingEffectCommand(
+                        effect.EffectType,
+                        0,
+                        effect.TargetTileIndex,
+                        string.Empty,
+                        effect.EffectIndex);
                 case BuildingEffectType.RequestConfirmation:
                 case BuildingEffectType.ShowFeedback:
-                    return new BuildingEffectCommand(effect.EffectType, 0, 0, effect.Message);
+                    return new BuildingEffectCommand(
+                        effect.EffectType,
+                        0,
+                        0,
+                        effect.Message,
+                        effect.EffectIndex);
                 default:
-                    return new BuildingEffectCommand(effect.EffectType, 0, 0, string.Empty);
+                    return new BuildingEffectCommand(
+                        effect.EffectType,
+                        0,
+                        0,
+                        string.Empty,
+                        effect.EffectIndex);
             }
         }
     }

@@ -69,12 +69,12 @@ public class PrototypeMapDataTests
     [Test]
     public void ToTileDefinitions_PreservesMapOrderAndBuildingData()
     {
-        var subtractMoney = ScriptableObject.CreateInstance<SubtractMoneyEffectAsset>();
-        subtractMoney.Configure(40);
+        var adjustMoney = ScriptableObject.CreateInstance<AdjustMoneyEffectAsset>();
+        adjustMoney.Configure(-40);
         var config = ScriptableObject.CreateInstance<BuildingConfig>();
         config.Configure("Shop", BuildingTriggerMode.Stop, new BuildingEffectAsset[]
         {
-            subtractMoney,
+            adjustMoney,
         });
 
         var map = ScriptableObject.CreateInstance<PrototypeMapData>();
@@ -92,12 +92,12 @@ public class PrototypeMapDataTests
         Assert.AreEqual("Start", definitions[0].Name);
         Assert.AreEqual("Shop", definitions[1].Name);
         Assert.IsNotNull(definitions[1].Building);
-        Assert.AreEqual(BuildingEffectType.SubtractMoney, definitions[1].Building.Effects[0].EffectType);
+        Assert.AreEqual(BuildingEffectType.AdjustMoney, definitions[1].Building.Effects[0].EffectType);
         Assert.IsNull(definitions[0].Building);
 
         Object.DestroyImmediate(map);
         Object.DestroyImmediate(config);
-        Object.DestroyImmediate(subtractMoney);
+        Object.DestroyImmediate(adjustMoney);
     }
 
     [Test]

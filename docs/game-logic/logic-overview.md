@@ -30,11 +30,18 @@ The prototype is intentionally narrow:
   - ScriptableObject authoring layer for buildings.
   - Holds an ordered list of `BuildingEffectAsset` references and converts them into pure `BuildingDefinition` values before rule resolution.
 - `Assets/Scripts/MonopolyPrototype/BuildingEffects/`
-  - ScriptableObject effect translator layer for add/subtract money, teleport, confirmation, and feedback.
+  - ScriptableObject effect translator layer for money adjustment, teleport, confirmation, and feedback.
   - Each concrete effect type lives in its own same-named script so Unity can bind its asset to the correct `MonoScript`.
   - Each effect asset can produce a pure definition or a `BuildingEffectCommand`; it does not apply player state or UI side effects.
+  - `AdjustMoneyEffectAsset` owns the two optional money event references used for both positive and negative adjustments; other effect assets have no event references yet.
+- `Assets/Scripts/MonopolyPrototype/BuildingEvents/`
+  - Application-boundary integration layer between building assets and SOEvent assets.
+  - `BuildingEventProfile` is optional metadata referenced by a `BuildingConfig`; it does not participate in `BuildingConfig.ToDefinition()`.
+  - `BuildingEventBridge` translates resolved move events and commands into typed `BuildingEventContext` payloads and raises the configured SOEvents.
+  - `BuildingEventSOEvent` exposes a serialized UnityEvent plus ordered runtime `Register`/`Unregister` callbacks for building-specific notifications.
+  - `MoneyChangeRequestedSOEvent` carries a mutable `MoneyChangeRequest` for money-effect modifiers; `MoneyChangedSOEvent` carries a post-application `MoneyChangeResult` for UI and other observers.
 - `Assets/Scripts/MonopolyPrototype/SOEvents/`
-  - Independent ScriptableObject event extension layer; it is not consumed by `BuildingEffectAsset`, `BuildingEffectCommand`, or `BuildingRuleResolver` in the current phase.
+  - Reusable ScriptableObject event extension layer. Core movement and building rule types do not depend on it; application-boundary building integration references it explicitly.
   - The abstract `SOEvent` base provides runtime listener lifecycle and cleanup, while concrete events define their own typed `Raise(...)` signature.
   - Each concrete event exposes a serialized `UnityEvent` for Inspector callbacks. `Raise(...)` invokes those persistent callbacks in Unity's serialized order, then invokes runtime callbacks through `Register`/`Unregister` using fixed integer order and registration sequence as a stable tie-breaker.
   - Array payloads are passed through without cloning, so listeners can intentionally observe or mutate the same array instance during one raise.
@@ -56,7 +63,7 @@ The prototype is intentionally narrow:
 - `Assets/Scripts/MonopolyPrototype/BoardController.cs`
   - Runtime flow controller for rolling, moving, emitting logs, and waiting for confirmations.
   - Receives an `IDiceRoller` so tests or later scene wiring can drive deterministic movement without changing movement rules.
-  - Consumes building effect commands as presentation-layer feedback/confirmation logs for now.
+  - Consumes building effect commands as presentation-layer feedback/confirmation logs for now and raises money-change requests through the application bridge.
 - `Assets/Scripts/MonopolyPrototype/PlayerToken.cs`
   - Visual token positioning and movement interpolation.
 - `Assets/Scripts/MonopolyPrototype/GameLogView.cs`
@@ -123,17 +130,31 @@ Current building trigger modes are:
 
 Current building effect types are:
 
-- `AddMoney`
-- `SubtractMoney`
+- `AdjustMoney`
 - `Teleport`
 - `RequestConfirmation`
 - `ShowFeedback`
 
-`BuildingRuleResolver.Resolve(...)` takes a pure `BuildingDefinition` and a `MoveEventTiming`, then returns ordered `BuildingEffectCommand` values. These commands describe what should happen; they do not apply UI, animation, player state, or MonoBehaviour listener side effects by themselves.
+`BuildingRuleResolver.Resolve(...)` takes a pure `BuildingDefinition` and a `MoveEventTiming`, then returns ordered `BuildingEffectCommand` values. These commands describe what should happen; they do not apply UI, animation, player state, or MonoBehaviour listener side effects by themselves. Each pure command carries an `EffectIndex` ordinal so the application boundary can locate the original Effect asset without storing a ScriptableObject reference in the rule model.
 
-`BuildingEffectAsset.ToCommand()` is an authoring-layer convenience for translating one effect asset into the same pure command used by the resolver. SOEvent is a separate extension layer: it can expose UnityEvent callbacks and runtime registration, but current building effects do not raise SOEvents and the core rules do not depend on them. This keeps UI or MonoBehaviour callback wiring outside the pure command pipeline.
+`BuildingEffectAsset.ToCommand()` is an authoring-layer convenience for translating one effect asset into the same pure command used by the resolver. Building effects do not raise SOEvents from `ToCommand()`. After `BoardMoveResolver` has produced a `MoveEvent`, `BoardController` passes it to `BuildingEventBridge`, which looks up the tile's optional `BuildingEventProfile` and raises building notifications. For `AdjustMoney` commands, the bridge finds the original `AdjustMoneyEffectAsset` by `EffectIndex`, creates a `MoneyChangeRequest`, and raises the two event references stored directly on that Effect asset. Other Effect assets currently have no event integration.
 
-At Play time, `PrototypeBootstrapper` reads each ordered tile from `PrototypeMapData` and assigns its serialized `BuildingConfig` to `BoardTile`. `BoardTile.ToDefinition()` converts the asset to a pure `BuildingDefinition`, which is carried by `BoardMoveResolver.TileDefinition`. When movement reaches a tile, `BoardMoveResolver` resolves the building for the pass or stop timing and includes any resulting commands on the emitted `MoveEvent`.
+The bridge raises events in this order:
+
+1. `BuildingTriggered` once for the resolved building event.
+2. `EffectCommandProduced` once per command, in the serialized effect order.
+3. `ConfirmationCompleted` after `ConfirmationView.WaitForConfirmation(...)` returns for a confirmation command.
+
+The profile is application metadata only. `BoardMoveResolver`, `BuildingRuleResolver`, `BuildingDefinition`, and `BuildingEffectCommand` remain usable without SOEvent assets.
+
+Money events use two stages:
+
+1. `MoneyChangeRequestedSOEvent` is raised for `AdjustMoney` commands. Its `MoneyChangeRequest` keeps the original `BaseDelta` and exposes `CurrentDelta` for ordered modifiers to adjust before a future money state system applies it.
+2. `MoneyChangedSOEvent` is reserved for the result after money state is applied. Its `MoneyChangeResult` contains the requested and applied deltas, balances before and after, success state, and failure reason so UI can display the actual result rather than a predicted command amount.
+
+The current prototype has no money state model yet. Therefore the request event is wired and the prototype log uses its possibly modified `CurrentDelta`, while `MoneyChangedSOEvent` is available for the later state-application adapter and is not raised by the command resolver.
+
+At Play time, `PrototypeBootstrapper` reads each ordered tile from `PrototypeMapData` and assigns its serialized `BuildingConfig` to `BoardTile`. `BoardTile.ToDefinition()` converts the asset to a pure `BuildingDefinition`, which is carried by `BoardMoveResolver.TileDefinition`. When movement reaches a tile, `BoardMoveResolver` resolves the building for the pass or stop timing and includes any resulting commands on the emitted `MoveEvent`. The original `BuildingConfig` remains available to the application layer so `BuildingEventBridge` can look up its optional `BuildingEventProfile` without adding event references to the pure definition.
 
 The runtime layout uses the map's square dimensions together with `boardCenter`, `tileSpacing`, and `tileScale`. When `fitCameraToBoard` is enabled, the orthographic camera centers on the board and calculates its size from the map bounds plus `cameraPadding`.
 
@@ -176,7 +197,7 @@ The next logic architecture pass should separate prototype responsibilities more
 - Map geometry and path order are authored in `PrototypeMapData`; all building effects remain authorable assets in `Assets/Data/Buildings`.
 - `PrototypeMapData.asset` is the prototype scene's source of truth for which `BuildingConfig` belongs to each ordered tile.
 - `PrototypeMapPainterWindow` is intentionally data-only; runtime visuals remain generated by `PrototypeBootstrapper`.
-- SOEvent concrete assets can be introduced for cross-system extension callbacks, but they should remain outside the core movement/building rule pipeline until a separate integration decision defines the boundary.
+- SOEvent concrete assets are integrated at the application boundary through `BuildingEventProfile` and `BuildingEventBridge`; the core movement/building rule pipeline remains independent.
 - Dice rolling is now injectable through `IDiceRoller`; a later controller-level test harness can drive deterministic movement without depending on Unity random.
 - The old `FacilityInteractionType`, route feedback fields, and controller facility branch have been removed; building commands are the only interaction path.
 - Money and teleport commands are currently surfaced as feedback logs by `BoardController`; future passes should connect them to dedicated player state and movement handlers.

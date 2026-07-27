@@ -15,7 +15,7 @@ SOEvent is an extension and integration layer. It is not the core movement/build
 
 ## Canonical Files
 
-Runtime code lives in `Assets/Scripts/MonopolyPrototype/SOEvents/` and is compiled by the `MonopolyPrototype.SOEvents` assembly definition.
+The reusable event primitives live in `Assets/Scripts/MonopolyPrototype/SOEvents/` and are compiled by the `MonopolyPrototype.SOEvents` assembly definition. The building-specific integration types live in `Assets/Scripts/MonopolyPrototype/BuildingEvents/` and are compiled with the application runtime assembly, which references the reusable SOEvent assembly.
 
 | Type | Purpose |
 | --- | --- |
@@ -25,6 +25,14 @@ Runtime code lives in `Assets/Scripts/MonopolyPrototype/SOEvents/` and is compil
 | `IntArraySOEvent` | Event with one `int[]` payload. |
 | `IntArrayIntSOEvent` | Event with an `int[]` payload and one additional `int` context value. |
 | `OrderedEventListeners<TDelegate>` | Pure C# ordered runtime listener registry used by the concrete events. |
+| `BuildingEventSOEvent` | Building integration event with a typed `BuildingEventContext` payload. |
+| `BuildingEventProfile` | Optional building-side grouping of trigger, command, and confirmation event references. |
+| `BuildingEventBridge` | Application-boundary adapter that translates resolved building events into SOEvent raises. |
+| `MoneyChangeRequestedSOEvent` | Mutable money-change request event raised before a future money state applies a delta. |
+| `MoneyChangedSOEvent` | Money-change result event raised after a state adapter applies a request. |
+| `MoneyChangeRequest` | Reference payload with source metadata, `BaseDelta`, and adjustable `CurrentDelta`. |
+| `MoneyChangeResult` | Reference payload with requested/applied deltas, balances, success state, and failure reason. |
+| `AdjustMoneyEffectAsset` | Effect asset with a signed money delta and direct references to the two money events. |
 
 EditMode coverage is in `Assets/Tests/EditMode/SOEvents/SOEventTests.cs` and uses the `MonopolyPrototype.SOEvents.EditModeTests` assembly.
 
@@ -47,6 +55,9 @@ Concrete event assets are available from Unity's Create Asset menu:
 - `Monopoly Prototype/SO Events/Int Event`
 - `Monopoly Prototype/SO Events/Int Array Event`
 - `Monopoly Prototype/SO Events/Int Array + Int Event`
+- `Monopoly Prototype/SO Events/Building Event`
+- `Monopoly Prototype/SO Events/Money Change Requested`
+- `Monopoly Prototype/SO Events/Money Changed`
 
 The concrete event classes contain private fields marked with `[SerializeField]`, such as `onRaised`. Unity displays these fields in the Inspector even though the field is not public. Add persistent Inspector callbacks there when the callback is intentionally part of the asset configuration.
 
@@ -128,7 +139,7 @@ For a different parameter list, add a new concrete event type rather than weaken
 
 ## Extending With A New Concrete Event
 
-New concrete events belong under `Assets/Scripts/MonopolyPrototype/SOEvents/` and must stay in the `MonopolyPrototype.SOEvents` assembly. Follow the existing concrete event pattern:
+Reusable generic concrete events belong under `Assets/Scripts/MonopolyPrototype/SOEvents/` and stay in the `MonopolyPrototype.SOEvents` assembly. Application-specific concrete events, such as the money events, belong under `Assets/Scripts/MonopolyPrototype/BuildingEvents/` and use the application runtime assembly while reusing the same `SOEvent` base and ordered listener helper. Follow the existing concrete event pattern:
 
 1. Add a `[Serializable]` subclass of the required `UnityEvent<...>` type.
 2. Add a `[CreateAssetMenu]` concrete `ScriptableObject` that derives from `SOEvent`.
@@ -160,19 +171,31 @@ presentation-agnostic BuildingEffectCommand values
 
 `BoardMoveResolver`, `BuildingRuleResolver`, `BuildingDefinition`, and `BuildingEffectCommand` must not depend on SOEvent, UnityEvent, UI, or MonoBehaviour listeners.
 
-If a later feature needs an SOEvent notification, place the integration at the presentation/application boundary:
+Building integration uses the following application-boundary flow:
 
 ```text
 pure rule result or BuildingEffectCommand
         |
         v
-integration adapter / presentation flow
+BuildingEventBridge
         |
         v
-optional SOEvent.Raise(...)
+BuildingEventProfile -> optional BuildingEventSOEvent.Raise(...)
 ```
 
-The adapter may translate a command into an event payload, but the core resolver must remain usable without the event asset. Do not make `BuildingEffectAsset.ToCommand()` raise an event, and do not make a building effect asset discover or invoke UI listeners unless a separate integration task explicitly changes this boundary.
+`BuildingConfig` may reference a `BuildingEventProfile` as application metadata. `BuildingConfig.ToDefinition()` ignores this reference, and the bridge retains the original asset-side mapping by tile index. The adapter translates a resolved move event or command into a `BuildingEventContext` payload, but the core resolver remains usable without any event asset. Do not make `BuildingEffectAsset.ToCommand()` raise an event, and do not make a building effect asset discover or invoke UI listeners.
+
+`BuildingEventProfile` has three optional channels:
+
+- `OnBuildingTriggered`: raised once when the building event has been resolved.
+- `OnEffectCommandProduced`: raised once per resolved command, preserving the building effect list order.
+- `OnConfirmationCompleted`: raised only after the presentation flow completes the confirmation wait.
+
+All current building assets reference the shared `Assets/Data/BuildingEvents/General.asset`, whose three channels point to the global building event assets. A future building-specific profile can replace that reference without changing the bridge. Persistent Inspector callbacks and runtime ordered listeners keep the ordering rules defined above. The profile and bridge do not own listener lifetimes; callback owners still register in `OnEnable` and unregister in `OnDisable`.
+
+Effect events are currently limited to `AdjustMoneyEffectAsset`. It stores optional `MoneyChangeRequestedSOEvent` and `MoneyChangedSOEvent` references directly in the Effect asset, so positive and negative adjustments use the same configuration shape. Other Effect assets do not carry an event profile until they have a concrete event requirement.
+
+For money effects, the bridge raises `MoneyChangeRequestedSOEvent` after an `AdjustMoney` command is produced. The request payload is a reference type: it preserves `BaseDelta`, exposes `CurrentDelta` for ordered modifiers, and includes the originating building, Effect name/index, tile, and timing. A future money state adapter owns the balance mutation and should raise `MoneyChangedSOEvent` with `MoneyChangeResult` after applying the request. UI should listen to the result event because it contains the actual applied delta and final balance.
 
 UI confirmation follows the same rule. Core logic reports that confirmation is required; a presentation-layer flow may raise an SOEvent after confirmation if a later design needs that notification.
 
@@ -200,7 +223,7 @@ Before changing or integrating SOEvent, a later session should:
 5. Add a new concrete event for a genuinely new parameter list instead of overloading an unrelated event.
 6. Register and unregister runtime callbacks from the owning lifecycle.
 7. Add focused EditMode tests and update this guide plus `logic-overview.md` for important behavior changes.
-8. Do not connect SOEvent to building effects without an explicit integration requirement and a documented boundary.
+8. When integrating an Effect with SOEvents, add direct event references only to the concrete Effect that needs them; never raise from `BuildingEffectAsset.ToCommand()` or the pure rule resolver.
 
 Useful prompt prefix for a new session:
 
