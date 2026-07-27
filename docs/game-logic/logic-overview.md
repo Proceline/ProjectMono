@@ -4,7 +4,7 @@ This document is the source-of-truth summary for the current gameplay logic laye
 
 ## Current Prototype
 
-The project currently implements a simple 2D top-down Monopoly-like prototype. The player clicks a roll button, receives a dice result from the configured `IDiceRoller` implementation, and the token moves step by step around the closed loop described by a `PrototypeMapData` asset.
+The project currently implements a simple top-down Monopoly-like prototype. The default runtime presentation uses Unity built-in 3D primitive meshes, while movement and building rules remain the same pure route-based systems. The player clicks a roll button, receives a dice result from the configured `IDiceRoller` implementation, and the token moves step by step around the closed loop described by a `PrototypeMapData` asset.
 
 The prototype is intentionally narrow:
 
@@ -71,8 +71,13 @@ The prototype is intentionally narrow:
 - `Assets/Scripts/MonopolyPrototype/ConfirmationView.cs`
   - Displays blocking confirmation UI for interactions that require player acknowledgement.
 - `Assets/Scripts/MonopolyPrototype/PrototypeBootstrapper.cs`
-  - Creates the current prototype board, UI, event system, and controller at Play time.
-  - Builds scene tiles from the serialized `PrototypeMapData` asset.
+  - Creates the current prototype UI, event system, and controller at Play time.
+  - Delegates the default 3D board presentation to `Prototype3DBoardView` while keeping `BoardTile` route objects as the controller contract.
+- `Assets/Scripts/MonopolyPrototype/Prototype3DBoardView.cs`
+  - Presentation-only runtime view that maps `PrototypeMapData` to built-in 3D platform, tile, building-marker, and label objects.
+  - Keeps generated visuals below the logical `BoardTile` roots so a later prefab-based view can replace it without changing movement rules.
+- `Assets/Scripts/MonopolyPrototype/Prototype3DVisualStyle.cs`
+  - Presentation-only deterministic mapping from existing building names to primitive types, colors, and marker scales.
 - `Assets/Editor/MonopolyPrototype/PrototypeMapPainterWindow.cs`
   - Editor-only map authoring tool.
   - Draws an N x N placeholder grid in the Scene view and stores only map data; it does not create runtime visual objects.
@@ -156,7 +161,7 @@ The current prototype has no money state model yet. Therefore the request event 
 
 At Play time, `PrototypeBootstrapper` reads each ordered tile from `PrototypeMapData` and assigns its serialized `BuildingConfig` to `BoardTile`. `BoardTile.ToDefinition()` converts the asset to a pure `BuildingDefinition`, which is carried by `BoardMoveResolver.TileDefinition`. When movement reaches a tile, `BoardMoveResolver` resolves the building for the pass or stop timing and includes any resulting commands on the emitted `MoveEvent`. The original `BuildingConfig` remains available to the application layer so `BuildingEventBridge` can look up its optional `BuildingEventProfile` without adding event references to the pure definition.
 
-The runtime layout uses the map's square dimensions together with `boardCenter`, `tileSpacing`, and `tileScale`. When `fitCameraToBoard` is enabled, the orthographic camera centers on the board and calculates its size from the map bounds plus `cameraPadding`.
+The runtime layout uses the map's square dimensions together with `boardCenter`, `tileSpacing`, and `tileScale`. `Prototype3DBoardView` maps the existing layout's grid X/Y coordinates to world X/Z coordinates and creates the 3D visuals. When `fitCameraToBoard` is enabled, `PrototypeBootstrapper` positions a desktop-friendly perspective camera from the board bounds plus `cameraPadding`.
 
 ## Confirmation Rules
 

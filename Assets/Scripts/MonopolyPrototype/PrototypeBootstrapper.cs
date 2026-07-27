@@ -9,11 +9,14 @@ namespace MonopolyPrototype
     public sealed class PrototypeBootstrapper : MonoBehaviour
     {
         [SerializeField] private PrototypeMapData mapData;
+        [SerializeField] private Prototype3DBoardView boardView;
         [SerializeField] private Vector2 boardCenter = PrototypeMapLayout.DefaultCenter;
         [SerializeField] private Vector2 tileSpacing = PrototypeMapLayout.DefaultSpacing;
         [SerializeField, Min(0.1f)] private float tileScale = PrototypeMapLayout.DefaultTileScale;
         [SerializeField] private bool fitCameraToBoard = true;
         [SerializeField, Min(0f)] private float cameraPadding = 0.8f;
+        [SerializeField, Range(25f, 80f)] private float cameraFieldOfView = 50f;
+        [SerializeField] private Vector3 cameraDirection = new Vector3(0.65f, 1f, -0.8f);
 
         private void Awake()
         {
@@ -38,7 +41,6 @@ namespace MonopolyPrototype
                 camera = cameraObject.AddComponent<Camera>();
             }
 
-            camera.orthographic = true;
             var mapSize = mapData == null
                 ? new Vector2Int(6, 6)
                 : new Vector2Int(mapData.Width, mapData.Height);
@@ -47,16 +49,28 @@ namespace MonopolyPrototype
                 boardCenter,
                 tileSpacing,
                 Mathf.Max(0.1f, tileScale));
-            var aspect = Mathf.Max(0.1f, camera.aspect);
-            var requiredSize = Mathf.Max(
-                boardBounds.size.y * 0.5f,
-                boardBounds.size.x / (2f * aspect));
-            camera.orthographicSize = fitCameraToBoard
-                ? requiredSize + cameraPadding
-                : Mathf.Max(0.1f, camera.orthographicSize);
-            camera.transform.position = new Vector3(boardCenter.x, boardCenter.y, -10f);
+            var target = new Vector3(boardCenter.x, 0f, boardCenter.y);
+            var halfWidth = boardBounds.size.x * 0.5f;
+            var halfDepth = boardBounds.size.y * 0.5f;
+            var boardRadius = Mathf.Sqrt(halfWidth * halfWidth + halfDepth * halfDepth);
+            var safeFieldOfView = Mathf.Clamp(cameraFieldOfView, 25f, 80f);
+            var requiredDistance = boardRadius
+                / Mathf.Tan(safeFieldOfView * 0.5f * Mathf.Deg2Rad)
+                + cameraPadding;
+            var direction = cameraDirection.sqrMagnitude > 0.001f
+                ? cameraDirection.normalized
+                : new Vector3(0.65f, 1f, -0.8f).normalized;
+
+            camera.orthographic = false;
+            camera.fieldOfView = safeFieldOfView;
+            camera.transform.position = fitCameraToBoard
+                ? target + direction * requiredDistance
+                : target + direction * Mathf.Max(8f, requiredDistance);
+            camera.transform.LookAt(target);
             camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.backgroundColor = new Color(0.07f, 0.09f, 0.11f);
+            camera.backgroundColor = new Color(0.07f, 0.1f, 0.13f);
+            camera.nearClipPlane = 0.1f;
+            camera.farClipPlane = Mathf.Max(100f, requiredDistance * 4f);
         }
 
         private static void EnsureEventSystem()
@@ -73,60 +87,33 @@ namespace MonopolyPrototype
 
         private IReadOnlyList<BoardTile> CreateBoard()
         {
-            var parent = new GameObject("Prototype Board").transform;
-            var sprite = CreateSquareSprite();
             if (mapData == null)
             {
                 Debug.LogError("Prototype Bootstrapper needs a PrototypeMapData asset.");
                 return new List<BoardTile>();
             }
 
-            if (!mapData.TryValidateClosedLoop(out var error))
+            if (boardView == null)
             {
-                Debug.LogError($"Prototype map data is invalid: {error}");
-                return new List<BoardTile>();
+                var viewObject = new GameObject("Prototype 3D Board View");
+                viewObject.transform.SetParent(transform, false);
+                boardView = viewObject.AddComponent<Prototype3DBoardView>();
             }
 
-            var tiles = new List<BoardTile>();
-            for (var i = 0; i < mapData.Tiles.Count; i++)
-            {
-                var mapTile = mapData.Tiles[i];
-                var definition = mapTile.ToDefinition();
-                var tileObject = new GameObject($"Tile - {definition.Name}");
-                tileObject.transform.SetParent(parent);
-                tileObject.transform.localScale = Vector3.one * Mathf.Max(0.1f, tileScale);
-                tileObject.transform.position = GetTilePosition(mapTile.GridPosition);
-
-                var renderer = tileObject.AddComponent<SpriteRenderer>();
-                renderer.sprite = sprite;
-                renderer.color = GetTileColor(definition.Building);
-                renderer.sortingOrder = 0;
-
-                var tile = tileObject.AddComponent<BoardTile>();
-                tile.Configure(definition.Name, mapTile.BuildingConfig);
-                tiles.Add(tile);
-
-                CreateTileLabel(tileObject.transform, definition.Name);
-            }
-
-            return tiles;
-        }
-
-        private Vector3 GetTilePosition(Vector2Int gridPosition)
-        {
-            var mapSize = mapData == null
-                ? new Vector2Int(6, 6)
-                : new Vector2Int(mapData.Width, mapData.Height);
-            return PrototypeMapLayout.GetWorldPosition(gridPosition, mapSize, boardCenter, tileSpacing);
+            return boardView.Build(mapData, boardCenter, tileSpacing, tileScale);
         }
 
         private static PlayerToken CreateToken()
         {
-            var tokenObject = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            var tokenObject = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             tokenObject.name = "Player Token";
-            tokenObject.transform.localScale = new Vector3(0.55f, 0.55f, 0.55f);
+            tokenObject.transform.localScale = new Vector3(0.45f, 0.75f, 0.45f);
             var renderer = tokenObject.GetComponent<Renderer>();
-            renderer.material.color = new Color(0.95f, 0.78f, 0.22f);
+            if (renderer != null)
+            {
+                renderer.material.color = new Color(0.95f, 0.78f, 0.22f);
+            }
+
             return tokenObject.AddComponent<PlayerToken>();
         }
 
@@ -250,59 +237,5 @@ namespace MonopolyPrototype
             return text;
         }
 
-        private static void CreateTileLabel(Transform parent, string label)
-        {
-            var labelObject = new GameObject("Label");
-            labelObject.transform.SetParent(parent);
-            labelObject.transform.localPosition = new Vector3(0f, 0f, -0.2f);
-
-            var textMesh = labelObject.AddComponent<TextMesh>();
-            textMesh.text = label;
-            textMesh.fontSize = 36;
-            textMesh.characterSize = 0.08f;
-            textMesh.anchor = TextAnchor.MiddleCenter;
-            textMesh.alignment = TextAlignment.Center;
-            textMesh.color = Color.white;
-        }
-
-        private static Color GetTileColor(BuildingDefinition building)
-        {
-            if (building == null)
-            {
-                return new Color(0.34f, 0.34f, 0.34f);
-            }
-
-            if (HasConfirmationEffect(building))
-            {
-                return building.TriggerMode == BuildingTriggerMode.Stop
-                    ? new Color(0.45f, 0.33f, 0.68f)
-                    : new Color(0.73f, 0.35f, 0.24f);
-            }
-
-            return building.TriggerMode == BuildingTriggerMode.Stop
-                ? new Color(0.21f, 0.46f, 0.64f)
-                : new Color(0.22f, 0.57f, 0.39f);
-        }
-
-        private static bool HasConfirmationEffect(BuildingDefinition building)
-        {
-            for (var i = 0; i < building.Effects.Count; i++)
-            {
-                if (building.Effects[i].EffectType == BuildingEffectType.RequestConfirmation)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static Sprite CreateSquareSprite()
-        {
-            var texture = new Texture2D(1, 1);
-            texture.SetPixel(0, 0, Color.white);
-            texture.Apply();
-            return Sprite.Create(texture, new Rect(0, 0, 1, 1), new Vector2(0.5f, 0.5f), 1f);
-        }
     }
 }

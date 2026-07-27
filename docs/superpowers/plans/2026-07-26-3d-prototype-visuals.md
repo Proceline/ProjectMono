@@ -33,11 +33,11 @@
 - Blank/null definitions produce no marker and a neutral tile style.
 - Known prototype building names receive deterministic primitive/color styles; unknown buildings receive a safe cube fallback.
 
-- [ ] Write EditMode tests for blank fallback, Start cylinder styling, Park sphere styling, and unknown-building cube fallback.
-- [ ] Run the focused EditMode test command and verify the new tests fail because the production style type does not exist.
-- [ ] Implement only the style value and mapping needed by the failing tests.
-- [ ] Run the focused tests and verify they pass before moving to board construction.
-- [ ] Commit the style contract and tests with `test: define 3d prototype visual styles`.
+- [x] Write EditMode tests for blank fallback, Start cylinder styling, Park sphere styling, and unknown-building cube fallback.
+- [x] Run the focused EditMode test command and verify the new tests fail because the production style type does not exist.
+- [x] Implement only the style value and mapping needed by the failing tests.
+- [x] Run the focused tests and verify they pass before moving to board construction.
+- [x] Commit the style contract and tests with `test: define 3d prototype visual styles`.
 
 ### Task 2: Add the replaceable primitive-based board view
 
@@ -50,13 +50,13 @@
 - Each returned `BoardTile` remains the root object at the map position; generated 3D platform, tile surface, building marker, and label objects are children only.
 - The view validates the map before creating route objects and logs validation errors at the presentation boundary.
 
-- [ ] Create the board platform as a cube using map bounds from `PrototypeMapLayout`.
-- [ ] Create each tile surface as a child cube positioned from the existing grid layout, preserving map path order and `BoardTile.Configure(...)` data.
-- [ ] Create deterministic built-in primitive markers from `Prototype3DVisualStyle`, with no ScriptableObject visual references.
-- [ ] Add readable world-space `TextMesh` labels without changing the pure definition or controller route.
-- [ ] Keep all visual construction inside this component so a future prefab/profile view can replace it without changing rule code.
-- [ ] Run the focused style tests and the existing core EditMode tests after the new view compiles.
-- [ ] Commit with `feat: add replaceable primitive 3d board view`.
+- [x] Create the board platform as a cube using map bounds from `PrototypeMapLayout`.
+- [x] Create each tile surface as a child cube positioned from the existing grid layout, preserving map path order and `BoardTile.Configure(...)` data.
+- [x] Create deterministic built-in primitive markers from `Prototype3DVisualStyle`, with no ScriptableObject visual references.
+- [x] Add readable world-space `TextMesh` labels without changing the pure definition or controller route.
+- [x] Keep all visual construction inside this component so a future prefab/profile view can replace it without changing rule code.
+- [x] Run the focused style tests and the existing core EditMode tests after the new view compiles.
+- [x] Commit with `feat: add replaceable primitive 3d board view`.
 
 ### Task 3: Switch runtime composition and camera to the 3D presentation
 
@@ -68,12 +68,12 @@
 - `PrototypeBootstrapper` delegates board creation to an optional serialized `Prototype3DBoardView`, creating a runtime fallback component when the scene does not provide one.
 - Camera setup uses the existing map dimensions/layout values and frames the 3D board with a desktop-friendly perspective camera.
 
-- [ ] Replace the 2D sprite tile construction call path with `Prototype3DBoardView.Build(...)`.
-- [ ] Preserve the existing runtime UI creation and roll/confirmation wiring.
-- [ ] Configure the camera to use a perspective view, a stable elevated diagonal direction, `cameraFieldOfView`, and a board-size-based distance with padding.
-- [ ] Keep the existing scene camera and Directional Light compatible; do not require scene asset edits for runtime board generation.
-- [ ] Run a script compile check and the focused EditMode tests.
-- [ ] Commit with `feat: wire prototype bootstrapper to 3d presentation`.
+- [x] Replace the 2D sprite tile construction call path with `Prototype3DBoardView.Build(...)`.
+- [x] Preserve the existing runtime UI creation and roll/confirmation wiring.
+- [x] Configure the camera to use a perspective view, a stable elevated diagonal direction, `cameraFieldOfView`, and a board-size-based distance with padding.
+- [x] Keep the existing scene camera and Directional Light compatible; do not require scene asset edits for runtime board generation.
+- [x] Run a script compile check and the focused EditMode tests.
+- [x] Commit with `feat: wire prototype bootstrapper to 3d presentation`.
 
 ### Task 4: Make the token read as a simple 3D pawn
 
@@ -85,11 +85,11 @@
 - `PlayerToken.SnapTo(...)` and `PlayerToken.MoveTo(...)` remain the only controller-facing movement methods.
 - Token construction uses a built-in Capsule or equivalent primitive and keeps its visual state outside `BoardTile`.
 
-- [ ] Change the default token offset to a 3D vertical offset above the tile.
-- [ ] Add a small visual hop to `MoveTo(...)` without changing movement duration, route order, or confirmation timing.
-- [ ] Build the token as a colored built-in 3D primitive with a separate shadow/foot child if the simple mesh needs grounding.
-- [ ] Run compile and EditMode tests; verify no gameplay rule tests changed.
-- [ ] Commit with `feat: present player token as 3d pawn`.
+- [x] Change the default token offset to a 3D vertical offset above the tile.
+- [x] Add a small visual hop to `MoveTo(...)` without changing movement duration, route order, or confirmation timing.
+- [x] Build the token as a colored built-in Capsule primitive; keep the MVP free of an extra shadow object.
+- [x] Run compile and EditMode tests; verify no gameplay rule tests changed.
+- [x] Commit with `feat: present player token as 3d pawn`.
 
 ### Task 5: Verify the playable 3D unit and hand off
 
@@ -99,8 +99,8 @@
 - Inspect: `Assets/Scripts/MonopolyPrototype/PrototypeMapData.cs`
 - Inspect: `docs/game-logic/logic-overview.md`
 
-- [ ] Run the complete available EditMode/core test suite.
-- [ ] Run a Unity batchmode compile or project script compile check; if Unity is blocked by an open Editor, record the exact limitation and use the available fallback.
+- [x] Run the complete available EditMode/core test suite.
+- [x] Run a Unity batchmode compile or project script compile check; if Unity is blocked by an open Editor, record the exact limitation and use the available fallback.
 - [ ] Verify the final diff contains no changes to pure resolver, building effect, SOEvent, or map data behavior.
 - [ ] Inspect branch status and the generated asset/script metadata for all new files.
 - [ ] Commit the verified implementation with `feat: add playable 3d prototype presentation` if an integration commit remains.
