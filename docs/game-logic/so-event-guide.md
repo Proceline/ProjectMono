@@ -62,7 +62,7 @@ Concrete event assets are available from Unity's Create Asset menu:
 
 The concrete event classes contain private fields marked with `[SerializeField]`, such as `onRaised`. Unity displays these fields in the Inspector even though the field is not public. Add persistent Inspector callbacks there when the callback is intentionally part of the asset configuration.
 
-Create the optional debug callback asset from `Monopoly Prototype/Debug/Money Changed Debug Probe`. It is not an event and does not register itself; drag the asset into a money request event's persistent callback target when a debug mutation or log is needed.
+The default debug callback asset is checked in at `Assets/Data/BuildingEvents/MoneyChangedDebugProbe.asset`. Additional instances can be created from `Monopoly Prototype/Debug/Money Changed Debug Probe`. It is not an event and does not register itself; drag the asset into a money request event's persistent callback target when a debug mutation or log is needed.
 
 Each `Raise(...)` call invokes:
 
@@ -204,7 +204,7 @@ For money effects, the bridge raises `MoneyChangeRequestedSOEvent` after an `Adj
 
 ### Money Request Debug Probe
 
-`MoneyChangedDebugProbeSO` is an optional Debug/Extension asset for demonstrating the mutable request chain. Create it from `Monopoly Prototype/Debug/Money Changed Debug Probe`, then add its request overloads to the `onRaised` Inspector UnityEvent on a `MoneyChangeRequestedSOEvent` asset:
+`MoneyChangedDebugProbeSO` is an optional Debug/Extension asset for demonstrating the mutable request chain. The checked-in default is `Assets/Data/BuildingEvents/MoneyChangedDebugProbe.asset`; additional instances can be created from `Monopoly Prototype/Debug/Money Changed Debug Probe`. The default asset is intentionally unbound, so it does not alter prototype money requests until its request overloads are added to the `onRaised` Inspector UnityEvent on a `MoneyChangeRequestedSOEvent` asset:
 
 - `AddMoney(MoneyChangeRequest)` adds the configured `addAmount` to payload element `0`.
 - `SubtractMoney(MoneyChangeRequest)` subtracts the configured `subtractAmount` from payload element `0`.
