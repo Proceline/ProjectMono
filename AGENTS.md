@@ -29,6 +29,7 @@
 ## Verification
 
 - Add or update EditMode tests for gameplay rule changes.
+- Prefer the Unity CLI (`Unity.exe -batchmode ...`) for compilation, test runs, asset refresh, and other verification whenever it can run safely; if an open Editor locks the project or the CLI is unavailable, use the open Editor and document that limitation.
 - Before reporting a gameplay rule change as complete, run the core rule tests and a script compile check when Unity batchmode is unavailable.
 - If Unity is already open and blocks batchmode tests, state that limitation clearly.
 
