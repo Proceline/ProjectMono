@@ -102,7 +102,12 @@ namespace MonopolyPrototype
             var coinObject = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             coinObject.name = "Coin";
             coinObject.transform.SetParent(popupObject.transform, false);
-            coinObject.transform.localPosition = new Vector3(0f, coinThickness, 0f);
+            var horizontalOffset = coinDiameter * 1.1f;
+            var camera = feedbackCamera != null ? feedbackCamera : Camera.main;
+            var screenRight = camera != null ? camera.transform.right : transform.right;
+            coinObject.transform.position = popupObject.transform.position
+                - screenRight * horizontalOffset
+                + Vector3.up * coinThickness;
             coinObject.transform.localScale = new Vector3(coinDiameter, coinThickness, coinDiameter);
             SetRendererColor(coinObject.GetComponent<Renderer>(), color);
 
@@ -114,7 +119,9 @@ namespace MonopolyPrototype
 
             var textObject = new GameObject("Amount");
             textObject.transform.SetParent(popupObject.transform, false);
-            textObject.transform.localPosition = new Vector3(0f, coinThickness * 2.5f, 0f);
+            textObject.transform.position = popupObject.transform.position
+                + screenRight * horizontalOffset
+                + Vector3.up * coinThickness;
 
             var amountText = textObject.AddComponent<TextMesh>();
             amountText.text = feedbackText;
@@ -165,7 +172,13 @@ namespace MonopolyPrototype
             var camera = feedbackCamera != null ? feedbackCamera : Camera.main;
             if (camera != null)
             {
-                amountText.transform.LookAt(camera.transform.position);
+                var directionToCamera = camera.transform.position - amountText.transform.position;
+                if (directionToCamera.sqrMagnitude > 0.001f)
+                {
+                    amountText.transform.rotation = Quaternion.LookRotation(
+                        directionToCamera.normalized,
+                        camera.transform.up) * Quaternion.Euler(0f, 180f, 0f);
+                }
             }
         }
 

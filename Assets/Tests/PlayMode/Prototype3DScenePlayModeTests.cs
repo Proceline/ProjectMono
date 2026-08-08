@@ -99,6 +99,41 @@ public class Prototype3DScenePlayModeTests
         Assert.That(moneyFeedback.LastResult.BalanceAfter, Is.EqualTo(100));
     }
 
+    [UnityTest]
+    public IEnumerator MoneyFeedback_PlacesAmountBesideCoinAndFacesCamera()
+    {
+        SceneManager.LoadScene("Assets/Scenes/SampleScene.unity", LoadSceneMode.Single);
+        yield return null;
+        yield return null;
+
+        var moneyFeedback = Object.FindFirstObjectByType<MoneyChangedCoinFeedback>();
+        var camera = Camera.main;
+
+        Assert.IsNotNull(moneyFeedback);
+        Assert.IsNotNull(camera);
+
+        moneyFeedback.MoneyChangedEvent.Raise(CreateResult(100, 25));
+        yield return null;
+
+        var popup = moneyFeedback.LastSpawnedFeedback;
+        var coin = popup.transform.Find("Coin");
+        var amount = popup.transform.Find("Amount");
+        var amountText = amount.GetComponent<TextMesh>();
+        var toCamera = (camera.transform.position - amountText.transform.position).normalized;
+        var screenHorizontalDistance = Mathf.Abs(Vector3.Dot(
+            amountText.transform.position - coin.position,
+            camera.transform.right));
+
+        Assert.Greater(
+            Vector3.Dot(-amountText.transform.forward, toCamera),
+            0.95f,
+            "Legacy TextMesh should face the camera with its readable front side.");
+        Assert.Greater(
+            screenHorizontalDistance,
+            0.45f,
+            "The amount should be horizontally separated from the coin.");
+    }
+
     private static MoneyChangeResult CreateResult(int requestDelta, int appliedDelta)
     {
         var request = new MoneyChangeRequest(
