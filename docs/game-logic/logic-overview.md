@@ -39,7 +39,12 @@ The prototype is intentionally narrow:
   - `BuildingEventProfile` is optional metadata referenced by a `BuildingConfig`; it does not participate in `BuildingConfig.ToDefinition()`.
   - `BuildingEventBridge` translates resolved move events and commands into typed `BuildingEventContext` payloads and raises the configured SOEvents.
   - `BuildingEventSOEvent` exposes a serialized UnityEvent plus ordered runtime `Register`/`Unregister` callbacks for building-specific notifications.
-  - `MoneyChangeRequestedSOEvent` carries a mutable `MoneyChangeRequest` for money-effect modifiers; `MoneyChangedSOEvent` carries a post-application `MoneyChangeResult` for UI and other observers.
+  - `MoneyChangeRequestedSOEvent` carries a mutable `MoneyChangeRequest` for money-effect modifiers; its request amount is backed by one shared `int[] CurrentDeltaPayload` so array-style callbacks can mutate the value in place.
+  - `MoneyChangedSOEvent` carries a post-application `MoneyChangeResult` for UI and other observers; it is not raised by the current prototype.
+- `Assets/Scripts/MonopolyPrototype/Debug/MoneyChangedDebugProbeSO.cs`
+  - Debug/extension-only ScriptableObject with Inspector-bindable `AddMoney`, `SubtractMoney`, `OverrideMoney`, and `LogMoney` callbacks.
+  - Request overloads mutate or read `MoneyChangeRequest.CurrentDeltaPayload`; array overloads use element `0` of an `int[]` payload and never clone it.
+  - It has no automatic event registration, UI dependency, MonoBehaviour dependency, money balance, or effect-animation behavior.
 - `Assets/Scripts/MonopolyPrototype/SOEvents/`
   - Reusable ScriptableObject event extension layer. Core movement and building rule types do not depend on it; application-boundary building integration references it explicitly.
   - The abstract `SOEvent` base provides runtime listener lifecycle and cleanup, while concrete events define their own typed `Raise(...)` signature.
@@ -149,10 +154,10 @@ The profile is application metadata only. `BoardMoveResolver`, `BuildingRuleReso
 
 Money events use two stages:
 
-1. `MoneyChangeRequestedSOEvent` is raised for `AdjustMoney` commands. Its `MoneyChangeRequest` keeps the original `BaseDelta` and exposes `CurrentDelta` for ordered modifiers to adjust before a future money state system applies it.
+1. `MoneyChangeRequestedSOEvent` is raised for `AdjustMoney` commands. Its `MoneyChangeRequest` keeps the original `BaseDelta`, exposes `CurrentDelta` as a convenience view of payload element `0`, and exposes the same `CurrentDeltaPayload` array for ordered modifiers or the debug probe to adjust before a future money state system applies it.
 2. `MoneyChangedSOEvent` is reserved for the result after money state is applied. Its `MoneyChangeResult` contains the requested and applied deltas, balances before and after, success state, and failure reason so UI can display the actual result rather than a predicted command amount.
 
-The current prototype has no money state model yet. Therefore the request event is wired and the prototype log uses its possibly modified `CurrentDelta`, while `MoneyChangedSOEvent` is available for the later state-application adapter and is not raised by the command resolver.
+The current prototype has no money state model yet. Therefore the request event is wired and the prototype log uses its possibly modified `CurrentDelta`, while `MoneyChangedSOEvent` is available for the later state-application adapter and is not raised by the command resolver. A `MoneyChangedDebugProbeSO` may be bound to the request event's Inspector UnityEvent to demonstrate add, subtract, override, or logging behavior; the probe does not apply a balance or play a coin effect.
 
 At Play time, `PrototypeBootstrapper` reads each ordered tile from `PrototypeMapData` and assigns its serialized `BuildingConfig` to `BoardTile`. `BoardTile.ToDefinition()` converts the asset to a pure `BuildingDefinition`, which is carried by `BoardMoveResolver.TileDefinition`. When movement reaches a tile, `BoardMoveResolver` resolves the building for the pass or stop timing and includes any resulting commands on the emitted `MoveEvent`. The original `BuildingConfig` remains available to the application layer so `BuildingEventBridge` can look up its optional `BuildingEventProfile` without adding event references to the pure definition.
 
@@ -185,6 +190,7 @@ The current rule tests cover:
 - Building config validation rejecting more than one confirmation effect.
 - Prototype building asset tests covering all 13 individual building assets, effect ordering, money payloads, and teleport targets.
 - Board tiles converting map-provided building configs into pure definitions.
+- Money request tests covering the shared request payload array, ordered probe mutation visibility, add/subtract/override callbacks, and debug logging.
 
 SOEvent EditMode tests in `Assets/Tests/EditMode/SOEvents/SOEventTests.cs` cover stable ordered registration, unregister behavior, runtime listener cleanup, and array payload mutation/reference identity. They exercise the extension layer without UI objects or MonoBehaviour listeners.
 

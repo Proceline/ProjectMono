@@ -30,9 +30,10 @@ The reusable event primitives live in `Assets/Scripts/MonopolyPrototype/SOEvents
 | `BuildingEventBridge` | Application-boundary adapter that translates resolved building events into SOEvent raises. |
 | `MoneyChangeRequestedSOEvent` | Mutable money-change request event raised before a future money state applies a delta. |
 | `MoneyChangedSOEvent` | Money-change result event raised after a state adapter applies a request. |
-| `MoneyChangeRequest` | Reference payload with source metadata, `BaseDelta`, and adjustable `CurrentDelta`. |
+| `MoneyChangeRequest` | Reference request wrapper with source metadata, `BaseDelta`, and one shared mutable `int[] CurrentDeltaPayload` (amount at index `0`). |
 | `MoneyChangeResult` | Reference payload with requested/applied deltas, balances, success state, and failure reason. |
 | `AdjustMoneyEffectAsset` | Effect asset with a signed money delta and direct references to the two money events. |
+| `MoneyChangedDebugProbeSO` | Debug/extension ScriptableObject with Inspector-bindable callbacks for mutating or logging a money request payload. |
 
 EditMode coverage is in `Assets/Tests/EditMode/SOEvents/SOEventTests.cs` and uses the `MonopolyPrototype.SOEvents.EditModeTests` assembly.
 
@@ -60,6 +61,8 @@ Concrete event assets are available from Unity's Create Asset menu:
 - `Monopoly Prototype/SO Events/Money Changed`
 
 The concrete event classes contain private fields marked with `[SerializeField]`, such as `onRaised`. Unity displays these fields in the Inspector even though the field is not public. Add persistent Inspector callbacks there when the callback is intentionally part of the asset configuration.
+
+Create the optional debug callback asset from `Monopoly Prototype/Debug/Money Changed Debug Probe`. It is not an event and does not register itself; drag the asset into a money request event's persistent callback target when a debug mutation or log is needed.
 
 Each `Raise(...)` call invokes:
 
@@ -135,6 +138,8 @@ modifierEvent.Raise(new[] { 5 });
 
 `IntArraySOEvent` and `IntArrayIntSOEvent` do not clone the array. If an earlier listener changes an element, later listeners and the caller observe that change. Treat this as an explicit mutable pipeline, document which listener owns each index, and avoid sharing a payload outside the raise unless that lifetime is intentional.
 
+Money request payloads follow the same convention without discarding request metadata. `MoneyChangeRequest` remains the typed reference passed by `MoneyChangeRequestedSOEvent`, but its adjustable amount is stored in one request-owned `int[] CurrentDeltaPayload`. Element `0` is the only amount slot. `CurrentDelta` is a convenience property over that slot, and `SetCurrentDelta(...)`/`AddToCurrentDelta(...)` update the same array. A later listener therefore observes the exact value written by an earlier listener or probe callback, and the caller's request observes it after `Raise(...)` returns.
+
 For a different parameter list, add a new concrete event type rather than weakening an existing event's signature. Define a serializable `UnityEvent<...>` subclass, keep its serialized event field private, and give the SOEvent typed `Register`, `Unregister`, and `Raise` methods that use the matching `UnityAction<...>` delegate.
 
 ## Extending With A New Concrete Event
@@ -195,7 +200,18 @@ All current building assets reference the shared `Assets/Data/BuildingEvents/Gen
 
 Effect events are currently limited to `AdjustMoneyEffectAsset`. It stores optional `MoneyChangeRequestedSOEvent` and `MoneyChangedSOEvent` references directly in the Effect asset, so positive and negative adjustments use the same configuration shape. Other Effect assets do not carry an event profile until they have a concrete event requirement.
 
-For money effects, the bridge raises `MoneyChangeRequestedSOEvent` after an `AdjustMoney` command is produced. The request payload is a reference type: it preserves `BaseDelta`, exposes `CurrentDelta` for ordered modifiers, and includes the originating building, Effect name/index, tile, and timing. A future money state adapter owns the balance mutation and should raise `MoneyChangedSOEvent` with `MoneyChangeResult` after applying the request. UI should listen to the result event because it contains the actual applied delta and final balance.
+For money effects, the bridge raises `MoneyChangeRequestedSOEvent` after an `AdjustMoney` command is produced. The request wrapper preserves `BaseDelta`, exposes `CurrentDelta` and `CurrentDeltaPayload`, and includes the originating building, Effect name/index, tile, and timing. A future money state adapter owns the balance mutation and should raise `MoneyChangedSOEvent` with `MoneyChangeResult` after applying the request. UI should listen to the result event because it contains the actual applied delta and final balance.
+
+### Money Request Debug Probe
+
+`MoneyChangedDebugProbeSO` is an optional Debug/Extension asset for demonstrating the mutable request chain. Create it from `Monopoly Prototype/Debug/Money Changed Debug Probe`, then add its request overloads to the `onRaised` Inspector UnityEvent on a `MoneyChangeRequestedSOEvent` asset:
+
+- `AddMoney(MoneyChangeRequest)` adds the configured `addAmount` to payload element `0`.
+- `SubtractMoney(MoneyChangeRequest)` subtracts the configured `subtractAmount` from payload element `0`.
+- `OverrideMoney(MoneyChangeRequest)` replaces payload element `0` with the configured `overrideAmount`.
+- `LogMoney(MoneyChangeRequest)` writes the current amount to the Unity log without changing it.
+
+The same asset also exposes `int[]` overloads for use with `IntArraySOEvent` or another array-shaped Inspector UnityEvent. These overloads mutate element `0` in place. The probe is a passive callback target: it does not register itself, discover events, own a balance, depend on UI or a MonoBehaviour listener, or play coin effects. Persistent callbacks execute before runtime listeners, so a runtime observer sees the probe's mutation during the same raise.
 
 UI confirmation follows the same rule. Core logic reports that confirmation is required; a presentation-layer flow may raise an SOEvent after confirmation if a later design needs that notification.
 
@@ -208,9 +224,10 @@ For a new SOEvent or a behavior change, add or update EditMode tests that verify
 - Equal order values remain stable by registration sequence.
 - `Unregister` prevents future raises.
 - A mutable array is the same reference for the entire listener chain when that behavior is required.
+- Money request probe callbacks mutate the shared `CurrentDeltaPayload`, and later listeners observe the mutation.
 - Runtime listeners are cleared by `ClearRuntimeListeners`.
 
-Run the SOEvent EditMode tests together with the existing core rule tests. The current SOEvent test assembly is `MonopolyPrototype.SOEvents.EditModeTests`.
+Run the SOEvent EditMode tests together with the existing core rule tests. The current SOEvent test assembly is `MonopolyPrototype.SOEvents.EditModeTests`; probe-specific coverage lives beside `SOEventTests.cs` in that assembly.
 
 ## Checklist For Future Codex Sessions
 
