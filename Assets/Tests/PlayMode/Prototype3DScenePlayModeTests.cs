@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Linq;
 using MonopolyPrototype;
 using NUnit.Framework;
 using UnityEngine;
@@ -60,6 +61,44 @@ public class Prototype3DScenePlayModeTests
         Assert.IsNotNull(moneyFeedback.LastSpawnedFeedback.GetComponentInChildren<MeshRenderer>());
     }
 
+    [UnityTest]
+    public IEnumerator BankMoveAppliesMoneyAndRaisesChangedFeedback()
+    {
+        SceneManager.LoadScene("Assets/Scenes/SampleScene.unity", LoadSceneMode.Single);
+        yield return null;
+        yield return null;
+
+        var moneyFeedback = Object.FindFirstObjectByType<MoneyChangedCoinFeedback>();
+        var controller = Object.FindFirstObjectByType<BoardController>();
+        var token = Object.FindFirstObjectByType<PlayerToken>();
+        var rollButton = GameObject.Find("Roll Button").GetComponent<Button>();
+        var route = Object.FindObjectsByType<BoardTile>(FindObjectsSortMode.None)
+            .OrderBy(tile => tile.transform.GetSiblingIndex())
+            .ToList();
+
+        Assert.IsNotNull(moneyFeedback);
+        Assert.IsNotNull(controller);
+        Assert.IsNotNull(token);
+        Assert.That(route.Count, Is.GreaterThan(1));
+
+        controller.Configure(
+            route,
+            token,
+            Object.FindFirstObjectByType<GameLogView>(),
+            Object.FindFirstObjectByType<ConfirmationView>(),
+            rollButton,
+            new FixedDiceRoller(1));
+
+        rollButton.onClick.Invoke();
+        yield return new WaitUntil(() => rollButton.interactable);
+
+        Assert.That(moneyFeedback.FeedbackCount, Is.EqualTo(1));
+        Assert.That(moneyFeedback.LastFeedbackText, Is.EqualTo("+100"));
+        Assert.IsNotNull(moneyFeedback.LastResult);
+        Assert.That(moneyFeedback.LastResult.BalanceBefore, Is.EqualTo(0));
+        Assert.That(moneyFeedback.LastResult.BalanceAfter, Is.EqualTo(100));
+    }
+
     private static MoneyChangeResult CreateResult(int requestDelta, int appliedDelta)
     {
         var request = new MoneyChangeRequest(
@@ -78,5 +117,20 @@ public class Prototype3DScenePlayModeTests
             balanceBefore: 100,
             balanceAfter: 100 + appliedDelta,
             succeeded: true);
+    }
+
+    private sealed class FixedDiceRoller : IDiceRoller
+    {
+        private readonly int steps;
+
+        public FixedDiceRoller(int steps)
+        {
+            this.steps = steps;
+        }
+
+        public int Roll()
+        {
+            return steps;
+        }
     }
 }

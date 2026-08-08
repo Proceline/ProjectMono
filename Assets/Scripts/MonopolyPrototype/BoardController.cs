@@ -135,13 +135,24 @@ namespace MonopolyPrototype
                 var command = moveEvent.BuildingCommands[i];
                 buildingEventBridge?.RaiseEffectCommandProduced(moveEvent, command);
                 var moneyChangeRequest = buildingEventBridge?.RaiseMoneyChangeRequested(moveEvent, command);
+                var moneyChangeResult = buildingEventBridge?.ApplyMoneyChange(
+                    moveEvent,
+                    command,
+                    moneyChangeRequest);
                 switch (command.EffectType)
                 {
                     case BuildingEffectType.AdjustMoney:
                     {
-                        var moneyDelta = moneyChangeRequest != null
-                            ? moneyChangeRequest.CurrentDelta
-                            : command.MoneyDelta;
+                        var moneyDelta = command.MoneyDelta;
+                        if (moneyChangeResult != null)
+                        {
+                            moneyDelta = moneyChangeResult.AppliedDelta;
+                        }
+                        else if (moneyChangeRequest != null)
+                        {
+                            moneyDelta = moneyChangeRequest.CurrentDelta;
+                        }
+
                         logView?.AddLine($"Money change: {moneyDelta:+#;-#;0}.");
                         break;
                     }

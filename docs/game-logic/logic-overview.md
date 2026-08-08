@@ -14,7 +14,7 @@ The prototype is intentionally narrow:
 - Building feedback and confirmation commands consumed by the presentation layer.
 - ScriptableObject-authored building data that converts into pure C# building definitions.
 - Building effects represented as presentation-agnostic commands: money changes, teleport requests, confirmation requests, and feedback requests.
-- No money model, health model, inventory, ownership, rent, turns, multiplayer, save data, or AI yet.
+- Minimal in-memory money state for the prototype; no health model, inventory, ownership, rent, turns, multiplayer, save data, or AI yet.
 
 ## Logic Files
 
@@ -41,6 +41,7 @@ The prototype is intentionally narrow:
   - `BuildingEventSOEvent` exposes a serialized UnityEvent plus ordered runtime `Register`/`Unregister` callbacks for building-specific notifications.
   - `MoneyChangeRequestedSOEvent` carries a mutable `MoneyChangeRequest` for money-effect modifiers; `MoneyChangedSOEvent` carries a post-application `MoneyChangeResult` for UI and other observers.
   - `MoneyChangeRequest.CurrentDeltaPayload` is one request-owned `int[]`; listeners mutate element `0` in place so later request listeners observe the same amount.
+  - `MoneyStateAdapter` is a pure C# application-boundary state holder that applies the final request amount, updates the prototype balance, and constructs the result payload.
   - `MoneyChangedDebugProbeSO` is an optional debug callback asset for adding, subtracting, overriding, or logging request amounts; it has no balance or presentation responsibility.
 - `Assets/Scripts/MonopolyPrototype/SOEvents/`
   - Reusable ScriptableObject event extension layer. Core movement and building rule types do not depend on it; application-boundary building integration references it explicitly.
@@ -65,7 +66,7 @@ The prototype is intentionally narrow:
 - `Assets/Scripts/MonopolyPrototype/BoardController.cs`
   - Runtime flow controller for rolling, moving, emitting logs, and waiting for confirmations.
   - Receives an `IDiceRoller` so tests or later scene wiring can drive deterministic movement without changing movement rules.
-  - Consumes building effect commands as presentation-layer feedback/confirmation logs for now and raises money-change requests through the application bridge.
+  - Consumes building effect commands as presentation-layer feedback/confirmation logs and delegates money request settlement to the application bridge.
 - `Assets/Scripts/MonopolyPrototype/PlayerToken.cs`
   - Visual token positioning and movement interpolation.
 - `Assets/Scripts/MonopolyPrototype/GameLogView.cs`
@@ -151,7 +152,7 @@ Current building effect types are:
 
 `BuildingRuleResolver.Resolve(...)` takes a pure `BuildingDefinition` and a `MoveEventTiming`, then returns ordered `BuildingEffectCommand` values. These commands describe what should happen; they do not apply UI, animation, player state, or MonoBehaviour listener side effects by themselves. Each pure command carries an `EffectIndex` ordinal so the application boundary can locate the original Effect asset without storing a ScriptableObject reference in the rule model.
 
-`BuildingEffectAsset.ToCommand()` is an authoring-layer convenience for translating one effect asset into the same pure command used by the resolver. Building effects do not raise SOEvents from `ToCommand()`. After `BoardMoveResolver` has produced a `MoveEvent`, `BoardController` passes it to `BuildingEventBridge`, which looks up the tile's optional `BuildingEventProfile` and raises building notifications. For `AdjustMoney` commands, the bridge finds the original `AdjustMoneyEffectAsset` by `EffectIndex`, creates a `MoneyChangeRequest`, and raises the two event references stored directly on that Effect asset. Other Effect assets currently have no event integration.
+`BuildingEffectAsset.ToCommand()` is an authoring-layer convenience for translating one effect asset into the same pure command used by the resolver. Building effects do not raise SOEvents from `ToCommand()`. After `BoardMoveResolver` has produced a `MoveEvent`, `BoardController` passes it to `BuildingEventBridge`, which looks up the tile's optional `BuildingEventProfile` and raises building notifications. For `AdjustMoney` commands, the bridge finds the original `AdjustMoneyEffectAsset` by `EffectIndex`, creates a `MoneyChangeRequest`, raises its request event, applies the completed request through `MoneyStateAdapter`, and raises that Effect asset's changed event. Other Effect assets currently have no event integration.
 
 The bridge raises events in this order:
 
@@ -163,10 +164,11 @@ The profile is application metadata only. `BoardMoveResolver`, `BuildingRuleReso
 
 Money events use two stages:
 
-1. `MoneyChangeRequestedSOEvent` is raised for `AdjustMoney` commands. Its `MoneyChangeRequest` keeps the original `BaseDelta` and exposes `CurrentDelta` plus the shared `CurrentDeltaPayload` for ordered modifiers to adjust before a future money state system applies it. The amount lives at payload index `0` and is not copied between listeners.
-2. `MoneyChangedSOEvent` is reserved for the result after money state is applied. Its `MoneyChangeResult` contains the requested and applied deltas, balances before and after, success state, and failure reason so UI can display the actual result rather than a predicted command amount.
+1. `MoneyChangeRequestedSOEvent` is raised for `AdjustMoney` commands. Its `MoneyChangeRequest` keeps the original `BaseDelta` and exposes `CurrentDelta` plus the shared `CurrentDeltaPayload` for ordered modifiers to adjust. The amount lives at payload index `0` and is not copied between listeners.
+2. After all request callbacks finish, `MoneyStateAdapter` applies the final `CurrentDelta`, updates the in-memory balance, and constructs `MoneyChangeResult`. `BuildingEventBridge` then raises the `MoneyChangedSOEvent` reference on the same `AdjustMoneyEffectAsset`.
+3. `MoneyChangedSOEvent` carries the actual requested/applied deltas, balances before and after, success state, and failure reason. Scene presentation listens here, so it cannot display a predicted amount before settlement.
 
-The current prototype has no money state model yet. Therefore the request event is wired and the prototype log uses its possibly modified `CurrentDelta`, while `MoneyChangedSOEvent` is available for the later state-application adapter and is not raised by the command resolver. `MoneyChangedDebugProbeSO` can be added to the request event's Inspector callbacks to demonstrate the shared mutation chain. The scene's `MoneyChangedCoinFeedback` is already bound to `Assets/Data/BuildingEvents/MoneyChanged.asset`, but remains visually idle until a state-application adapter raises the result event.
+The prototype starts each `BoardController` configuration with a balance of `0` and accepts signed deltas, including negative values, without an insufficient-funds policy. Persistence, rejection rules, and multi-player ownership are intentionally outside this minimal adapter. `MoneyChangedDebugProbeSO` can be added to the request event's Inspector callbacks to demonstrate the shared mutation chain. The current 3D demo map exposes the existing Bank config on its first reachable tile so the normal scene flow can exercise the full request-to-feedback path.
 
 At Play time, `PrototypeBootstrapper` reads each ordered tile from `PrototypeMapData` and assigns its serialized `BuildingConfig` to `BoardTile`. `BoardTile.ToDefinition()` converts the asset to a pure `BuildingDefinition`, which is carried by `BoardMoveResolver.TileDefinition`. When movement reaches a tile, `BoardMoveResolver` resolves the building for the pass or stop timing and includes any resulting commands on the emitted `MoveEvent`. The original `BuildingConfig` remains available to the application layer so `BuildingEventBridge` can look up its optional `BuildingEventProfile` without adding event references to the pure definition.
 
@@ -198,6 +200,8 @@ The current rule tests cover:
 - Building effect assets translating into pure definitions and commands.
 - Building config validation rejecting more than one confirmation effect.
 - Prototype building asset tests covering all 13 individual building assets, effect ordering, money payloads, and teleport targets.
+- `MoneyStateAdapter` tests covering shared request mutations, balance transitions, result fields, and null-request validation.
+- 3D PlayMode coverage for moving onto the demo Bank, applying `+100`, raising `MoneyChangedSOEvent`, and creating coin feedback.
 - Board tiles converting map-provided building configs into pure definitions.
 
 SOEvent EditMode tests in `Assets/Tests/EditMode/SOEvents/SOEventTests.cs` cover stable ordered registration, unregister behavior, runtime listener cleanup, and array payload mutation/reference identity. They exercise the extension layer without UI objects or MonoBehaviour listeners.
@@ -214,7 +218,7 @@ The next logic architecture pass should separate prototype responsibilities more
 - SOEvent concrete assets are integrated at the application boundary through `BuildingEventProfile` and `BuildingEventBridge`; the core movement/building rule pipeline remains independent.
 - Dice rolling is now injectable through `IDiceRoller`; a later controller-level test harness can drive deterministic movement without depending on Unity random.
 - The old `FacilityInteractionType`, route feedback fields, and controller facility branch have been removed; building commands are the only interaction path.
-- Money and teleport commands are currently surfaced as feedback logs by `BoardController`; future passes should connect them to dedicated player state and movement handlers.
+- Money commands now pass through the minimal pure C# `MoneyStateAdapter`; future passes can replace or extend its policy for insufficient funds, persistence, ownership, and multiplayer state.
 - UI confirmation should remain a presentation concern; core logic should only mark events as requiring confirmation.
 - Long-term gameplay systems such as money, health, ownership, turns, and player state should be introduced as separate pure logic units before being wired into scene UI.
 

@@ -6,10 +6,14 @@ namespace MonopolyPrototype
     public sealed class BuildingEventBridge
     {
         private readonly IReadOnlyList<BuildingConfig> buildingConfigs;
+        private readonly MoneyStateAdapter moneyStateAdapter;
 
-        public BuildingEventBridge(IReadOnlyList<BuildingConfig> buildingConfigs)
+        public BuildingEventBridge(
+            IReadOnlyList<BuildingConfig> buildingConfigs,
+            MoneyStateAdapter moneyStateAdapter = null)
         {
             this.buildingConfigs = buildingConfigs ?? throw new ArgumentNullException(nameof(buildingConfigs));
+            this.moneyStateAdapter = moneyStateAdapter ?? new MoneyStateAdapter();
         }
 
         public void RaiseBuildingTriggered(BoardMoveResolver.MoveEvent moveEvent)
@@ -62,6 +66,22 @@ namespace MonopolyPrototype
 
             effectAsset?.RaiseMoneyChangeRequested(request);
             return request;
+        }
+
+        public MoneyChangeResult ApplyMoneyChange(
+            BoardMoveResolver.MoveEvent moveEvent,
+            BuildingEffectCommand command,
+            MoneyChangeRequest request)
+        {
+            if (!IsMoneyChange(command.EffectType) || moveEvent.Building == null || request == null)
+            {
+                return null;
+            }
+
+            var result = moneyStateAdapter.Apply(request);
+            var effectAsset = GetEffectAsset(moveEvent.TileIndex, command.EffectIndex) as AdjustMoneyEffectAsset;
+            effectAsset?.RaiseMoneyChanged(result);
+            return result;
         }
 
         public void RaiseConfirmationCompleted(
