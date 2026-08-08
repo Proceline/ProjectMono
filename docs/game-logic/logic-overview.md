@@ -40,6 +40,8 @@ The prototype is intentionally narrow:
   - `BuildingEventBridge` translates resolved move events and commands into typed `BuildingEventContext` payloads and raises the configured SOEvents.
   - `BuildingEventSOEvent` exposes a serialized UnityEvent plus ordered runtime `Register`/`Unregister` callbacks for building-specific notifications.
   - `MoneyChangeRequestedSOEvent` carries a mutable `MoneyChangeRequest` for money-effect modifiers; `MoneyChangedSOEvent` carries a post-application `MoneyChangeResult` for UI and other observers.
+  - `MoneyChangeRequest.CurrentDeltaPayload` is one request-owned `int[]`; listeners mutate element `0` in place so later request listeners observe the same amount.
+  - `MoneyChangedDebugProbeSO` is an optional debug callback asset for adding, subtracting, overriding, or logging request amounts; it has no balance or presentation responsibility.
 - `Assets/Scripts/MonopolyPrototype/SOEvents/`
   - Reusable ScriptableObject event extension layer. Core movement and building rule types do not depend on it; application-boundary building integration references it explicitly.
   - The abstract `SOEvent` base provides runtime listener lifecycle and cleanup, while concrete events define their own typed `Raise(...)` signature.
@@ -81,6 +83,10 @@ The prototype is intentionally narrow:
   - Configures the prefab's built-in Cube surface, marker anchor, and world-space `TextMesh` from the existing pure building definition and tile name.
 - `Assets/Scripts/MonopolyPrototype/Prototype3DVisualStyle.cs`
   - Presentation-only deterministic mapping from existing building names to primitive types, colors, and marker scales.
+- `Assets/Scripts/MonopolyPrototype/Presentation/MoneyChangedCoinFeedback.cs`
+  - Scene-side 3D presentation adapter attached under `Prototype Bootstrapper` in `SampleScene`.
+  - Registers only with `MoneyChangedSOEvent`; a result creates a short-lived world-space primitive coin and `TextMesh` amount at the configured scene anchor.
+  - Does not listen to `MoneyChangeRequestedSOEvent`, apply balance changes, or modify request payloads.
 - `Assets/Editor/MonopolyPrototype/PrototypeMapPainterWindow.cs`
   - Editor-only map authoring tool.
   - Draws an N x N placeholder grid in the Scene view and stores only map data; it does not create runtime visual objects.
@@ -157,10 +163,10 @@ The profile is application metadata only. `BoardMoveResolver`, `BuildingRuleReso
 
 Money events use two stages:
 
-1. `MoneyChangeRequestedSOEvent` is raised for `AdjustMoney` commands. Its `MoneyChangeRequest` keeps the original `BaseDelta` and exposes `CurrentDelta` for ordered modifiers to adjust before a future money state system applies it.
+1. `MoneyChangeRequestedSOEvent` is raised for `AdjustMoney` commands. Its `MoneyChangeRequest` keeps the original `BaseDelta` and exposes `CurrentDelta` plus the shared `CurrentDeltaPayload` for ordered modifiers to adjust before a future money state system applies it. The amount lives at payload index `0` and is not copied between listeners.
 2. `MoneyChangedSOEvent` is reserved for the result after money state is applied. Its `MoneyChangeResult` contains the requested and applied deltas, balances before and after, success state, and failure reason so UI can display the actual result rather than a predicted command amount.
 
-The current prototype has no money state model yet. Therefore the request event is wired and the prototype log uses its possibly modified `CurrentDelta`, while `MoneyChangedSOEvent` is available for the later state-application adapter and is not raised by the command resolver.
+The current prototype has no money state model yet. Therefore the request event is wired and the prototype log uses its possibly modified `CurrentDelta`, while `MoneyChangedSOEvent` is available for the later state-application adapter and is not raised by the command resolver. `MoneyChangedDebugProbeSO` can be added to the request event's Inspector callbacks to demonstrate the shared mutation chain. The scene's `MoneyChangedCoinFeedback` is already bound to `Assets/Data/BuildingEvents/MoneyChanged.asset`, but remains visually idle until a state-application adapter raises the result event.
 
 At Play time, `PrototypeBootstrapper` reads each ordered tile from `PrototypeMapData` and assigns its serialized `BuildingConfig` to `BoardTile`. `BoardTile.ToDefinition()` converts the asset to a pure `BuildingDefinition`, which is carried by `BoardMoveResolver.TileDefinition`. When movement reaches a tile, `BoardMoveResolver` resolves the building for the pass or stop timing and includes any resulting commands on the emitted `MoveEvent`. The original `BuildingConfig` remains available to the application layer so `BuildingEventBridge` can look up its optional `BuildingEventProfile` without adding event references to the pure definition.
 

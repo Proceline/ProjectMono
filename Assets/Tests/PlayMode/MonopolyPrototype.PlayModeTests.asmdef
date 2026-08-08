@@ -2,7 +2,8 @@
     "name": "MonopolyPrototype.PlayModeTests",
     "rootNamespace": "",
     "references": [
-        "MonopolyPrototype"
+        "MonopolyPrototype",
+        "MonopolyPrototype.SOEvents"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

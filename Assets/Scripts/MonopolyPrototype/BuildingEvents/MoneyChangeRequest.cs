@@ -14,7 +14,7 @@ namespace MonopolyPrototype
         [SerializeField] private MoveEventTiming timing;
         [SerializeField] private int transactionId;
         [SerializeField] private int baseDelta;
-        [SerializeField] private int currentDelta;
+        [SerializeField] private int[] currentDeltaPayload = new int[1];
 
         public MoneyChangeRequest(
             string buildingName,
@@ -34,7 +34,7 @@ namespace MonopolyPrototype
             this.timing = timing;
             this.transactionId = transactionId;
             this.baseDelta = baseDelta;
-            currentDelta = baseDelta;
+            currentDeltaPayload = new[] { baseDelta };
         }
 
         public string BuildingName => buildingName;
@@ -45,16 +45,28 @@ namespace MonopolyPrototype
         public MoveEventTiming Timing => timing;
         public int TransactionId => transactionId;
         public int BaseDelta => baseDelta;
-        public int CurrentDelta => currentDelta;
+        public int CurrentDelta => CurrentDeltaPayload[0];
+        public int[] CurrentDeltaPayload
+        {
+            get
+            {
+                if (currentDeltaPayload == null || currentDeltaPayload.Length == 0)
+                {
+                    currentDeltaPayload = new[] { baseDelta };
+                }
+
+                return currentDeltaPayload;
+            }
+        }
 
         public void SetCurrentDelta(int delta)
         {
-            currentDelta = delta;
+            CurrentDeltaPayload[0] = delta;
         }
 
         public void AddToCurrentDelta(int delta)
         {
-            currentDelta += delta;
+            CurrentDeltaPayload[0] += delta;
         }
     }
 }
